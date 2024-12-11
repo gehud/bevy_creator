@@ -1,0 +1,15 @@
+[package]
+name = "bevy_creator"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "BevyCreator"
+path = "src/main.rs"
+
+[dependencies]
+bevy = "0.14.2"
+bevy-inspector-egui = "0.27.0"
+egui_dock = "0.14.0"
+bevy_framepace = "0.17.1"
+transform-gizmo-egui = "0.4.0"
