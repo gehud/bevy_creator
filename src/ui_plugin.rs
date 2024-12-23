@@ -16,6 +16,9 @@ use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use bevy_reflect::TypeRegistry;
 use bevy_render::camera::{CameraProjection, Viewport};
 use bevy_window::PrimaryWindow;
+use egui::panel::TopBottomSide;
+use egui::Id;
+use egui::TopBottomPanel;
 use egui_dock::{DockArea, DockState, NodeIndex, Style};
 use egui_gizmo::{Gizmo, GizmoMode, GizmoOrientation};
 
@@ -116,7 +119,7 @@ pub struct UiState {
 
 impl UiState {
     pub fn new() -> Self {
-        let mut state = DockState::new(vec![EguiWindow::GameView]);
+        let mut state = DockState::new(vec![EguiWindow::Game]);
         let tree = state.main_surface_mut();
         let [game, _inspector] =
             tree.split_right(NodeIndex::root(), 0.75, vec![EguiWindow::Inspector]);
@@ -134,6 +137,8 @@ impl UiState {
     }
 
     fn ui(&mut self, world: &mut World, ctx: &mut egui::Context) {
+        TopBottomPanel::new(TopBottomSide::Top, Id::new("menu")).show(ctx, draw_menu);
+
         let mut tab_viewer = TabViewer {
             world,
             viewport_rect: &mut self.viewport_rect,
@@ -149,7 +154,7 @@ impl UiState {
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 enum EguiWindow {
-    GameView,
+    Game,
     Hierarchy,
     Resources,
     Assets,
@@ -172,7 +177,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
         let type_registry = type_registry.read();
 
         match window {
-            EguiWindow::GameView => {
+            EguiWindow::Game => {
                 *self.viewport_rect = ui.clip_rect();
 
                 draw_gizmo(ui, self.world, self.selected_entities, self.gizmo_mode);
@@ -219,8 +224,16 @@ impl egui_dock::TabViewer for TabViewer<'_> {
     }
 
     fn clear_background(&self, window: &Self::Tab) -> bool {
-        !matches!(window, EguiWindow::GameView)
+        !matches!(window, EguiWindow::Game)
     }
+}
+
+fn draw_menu(ui: &mut egui::Ui) {
+    ui.menu_button("File", |ui| {
+        if ui.button("Close").clicked() {
+            ui.close_menu();
+        }
+    });
 }
 
 fn draw_gizmo(

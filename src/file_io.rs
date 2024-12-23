@@ -6,7 +6,7 @@ use std::{
 
 use directories::ProjectDirs;
 
-const PROJECT_CONFIG_PARAMS: (&str, &str, &str) = ("com", "YourCompany", "GameEditor");
+const PROJECT_CONFIG_PARAMS: (&str, &str, &str) = ("com", "Gehud", "BevyCreator");
 
 pub fn save_json_config(file: &str, contents: String) {
     let Ok(_) = ensure_config_dir() else {
