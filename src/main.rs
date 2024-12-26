@@ -1,4 +1,8 @@
+use std::env;
+
+use backends::raycast::bevy_mod_raycast::prelude::RaycastSource;
 use bevy::prelude::*;
+use bevy_log::{Level, LogPlugin};
 use bevy_mod_picking::{
     events::{Click, Pointer},
     picking_core::Pickable,
@@ -6,6 +10,10 @@ use bevy_mod_picking::{
     selection::Deselect,
     *,
 };
+use bevy_window::PresentMode;
+use debug::{DebugPickingMode, DebugPickingPlugin};
+use events::{Down, Up};
+use focus::PickingInteraction;
 use ui_plugin::{MainCamera, UiPlugin, UiState};
 use window_persistence::WindowPersistencePlugin;
 
@@ -19,7 +27,8 @@ impl Plugin for GameEditorPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
-                title: String::from("Game Editor"),
+                present_mode: PresentMode::AutoNoVsync,
+                title: String::from("BevyCreator"),
                 resolution: (1280., 720.).into(),
                 ..default()
             }),
@@ -210,7 +219,6 @@ fn setup(
         },
         MainCamera,
         UiCameraConfig { show_ui: false },
-        // PickRaycastSource,
     ));
 }
 
