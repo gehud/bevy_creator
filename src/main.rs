@@ -28,12 +28,13 @@ use bevy::transform::components::Transform;
 use bevy::utils::default;
 use bevy::window::{PresentMode, Window, WindowPlugin};
 use bevy::DefaultPlugins;
+use window_persistence::WindowPersistencePlugin;
 // use ui_plugin::{MainCamera, UiPlugin, UiState};
 // use window_persistence::WindowPersistencePlugin;
 
-// pub mod file_io;
+pub mod file_io;
 // mod ui_plugin;
-// mod window_persistence;
+mod window_persistence;
 
 pub struct GameEditorPlugin;
 
@@ -49,7 +50,7 @@ impl Plugin for GameEditorPlugin {
             ..default()
         }))
         // .add_plugins(UiPlugin)
-        // .add_plugins(WindowPersistencePlugin)
+        .add_plugins(WindowPersistencePlugin)
         // .add_plugins(DefaultPickingPlugins)
         .add_systems(Startup, setup)
         // .add_systems(Update, auto_add_raycast_target)
