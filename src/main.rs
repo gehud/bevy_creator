@@ -28,13 +28,14 @@ use bevy::transform::components::Transform;
 use bevy::utils::default;
 use bevy::window::{PresentMode, Window, WindowPlugin};
 use bevy::DefaultPlugins;
-use window_persistence::WindowPersistencePlugin;
-// use ui_plugin::{MainCamera, UiPlugin, UiState};
-// use window_persistence::WindowPersistencePlugin;
 
 pub mod file_io;
-// mod ui_plugin;
+
+mod ui_plugin;
+use ui_plugin::{MainCamera, UiPlugin, UiState};
+
 mod window_persistence;
+use window_persistence::WindowPersistencePlugin;
 
 pub struct GameEditorPlugin;
 
@@ -49,12 +50,9 @@ impl Plugin for GameEditorPlugin {
             }),
             ..default()
         }))
-        // .add_plugins(UiPlugin)
+        .add_plugins(UiPlugin)
         .add_plugins(WindowPersistencePlugin)
-        // .add_plugins(DefaultPickingPlugins)
         .add_systems(Startup, setup)
-        // .add_systems(Update, auto_add_raycast_target)
-        // .add_systems(Update, handle_pick_events)
         .register_type::<Option<Handle<Image>>>()
         .register_type::<AlphaMode>();
     }
@@ -211,7 +209,7 @@ fn setup(
             ..default()
         },
         Camera3d::default(),
-        // MainCamera,
+        MainCamera,
     ));
 }
 

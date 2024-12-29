@@ -1,128 +1,132 @@
-// use bevy::{prelude::*, scene::serde::SceneDeserializer};
-// use bevy_utils::HashMap;
-// use egui::util::undoer::Undoer;
-// use serde::de::DeserializeSeed;
+use std::default;
 
-// pub struct UndoPlugin;
+use bevy::ecs::entity::EntityHashMap;
+use bevy::scene::ron;
+use bevy::{prelude::*, scene::serde::SceneDeserializer};
+use bevy::utils::HashMap;
+use bevy_egui::egui::util::undoer::Undoer;
+use serde::de::DeserializeSeed;
 
-// impl Plugin for UndoPlugin {
-//     fn build(&self, app: &mut App) {
-//         app.init_resource::<UndoResource>()
-//             .add_systems(PreUpdate, feed_undo_state)
-//             .add_systems(Update, undo_on_keypress)
-//             .add_systems(Update, redo_on_keypress);
-//     }
-// }
+pub struct UndoPlugin;
 
-// #[derive(Resource)]
-// struct UndoResource {
-//     pub undoer: Undoer<String>,
-//     pub redoer: Undoer<String>,
-// }
+impl Plugin for UndoPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_resource::<UndoResource>()
+            .add_systems(PreUpdate, feed_undo_state)
+            .add_systems(Update, undo_on_keypress)
+            .add_systems(Update, redo_on_keypress);
+    }
+}
 
-// impl Default for UndoResource {
-//     fn default() -> Self {
-//         Self {
-//             undoer: Undoer::<String>::default(),
-//             redoer: Undoer::<String>::default(),
-//         }
-//     }
-// }
+#[derive(Resource)]
+struct UndoResource {
+    pub undoer: Undoer<String>,
+    pub redoer: Undoer<String>,
+}
 
-// fn extract_undo_scene(world: &mut World) -> DynamicScene {
-//     DynamicSceneBuilder::from_world(world)
-//         .deny_all_resources()
-//         .allow::<Transform>()
-//         .extract_entities(world.iter_entities().map(|entity| entity.id()))
-//         .extract_resources()
-//         .build()
-// }
+impl Default for UndoResource {
+    fn default() -> Self {
+        Self {
+            undoer: Undoer::<String>::default(),
+            redoer: Undoer::<String>::default(),
+        }
+    }
+}
 
-// fn feed_undo_state(world: &mut World) {
-//     let scene = extract_undo_scene(world);
-//     let time = world.resource::<Time<Real>>().clone();
-//     let type_registry = world.resource::<AppTypeRegistry>().clone();
-//     let mut undo_resource = world.resource_mut::<UndoResource>();
-//     let serialized_scene = scene.serialize_ron(&type_registry).unwrap();
+fn extract_undo_scene(world: &mut World) -> DynamicScene {
+    DynamicSceneBuilder::from_world(world)
+        .deny_all_resources()
+        .allow_component::<Transform>()
+        .extract_entities(world.iter_entities().map(|entity| entity.id()))
+        .extract_resources()
+        .build()
+}
 
-//     undo_resource
-//         .undoer
-//         .feed_state(time.elapsed().as_secs_f64(), &serialized_scene);
-// }
+fn feed_undo_state(world: &mut World) {
+    let scene = extract_undo_scene(world);
+    let time = world.resource::<Time<Real>>().clone();
+    let type_registry = world.resource::<AppTypeRegistry>().clone();
+    let mut undo_resource = world.resource_mut::<UndoResource>();
+    let serialized_scene = scene.serialize(&type_registry.read()).unwrap();
 
-// fn undo_on_keypress(world: &mut World) {
-//     let keys = world.resource::<Input<KeyCode>>().clone();
+    undo_resource
+        .undoer
+        .feed_state(time.elapsed().as_secs_f64(), &serialized_scene);
+}
 
-//     if !(keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight])
-//         && keys.just_pressed(KeyCode::Z))
-//     {
-//         return;
-//     }
+fn undo_on_keypress(world: &mut World) {
+    let keys = world.resource::<ButtonInput<KeyCode>>().clone();
 
-//     let scene = extract_undo_scene(world);
-//     let type_registry = world.resource::<AppTypeRegistry>().clone();
-//     let serialized_scene = scene.serialize_ron(&type_registry).unwrap();
-//     let undo_resource = world.resource_mut::<UndoResource>().into_inner();
-//     let undoer = &mut undo_resource.undoer;
-//     let redoer = &mut undo_resource.redoer;
+    if !(keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight])
+        && keys.just_pressed(KeyCode::KeyZ))
+    {
+        return;
+    }
 
-//     let Some(old_state) = undoer.undo(&serialized_scene) else {
-//         return;
-//     };
+    let scene = extract_undo_scene(world);
+    let type_registry = world.resource::<AppTypeRegistry>().clone();
+    let serialized_scene = scene.serialize(&type_registry.read()).unwrap();
+    let undo_resource = world.resource_mut::<UndoResource>().into_inner();
+    let undoer = &mut undo_resource.undoer;
+    let redoer = &mut undo_resource.redoer;
 
-//     redoer.add_undo(&serialized_scene);
+    let Some(old_state) = undoer.undo(&serialized_scene) else {
+        return;
+    };
 
-//     let mut deserializer = ron::de::Deserializer::from_str(&old_state).unwrap();
-//     let derser_type_reg = type_registry.0.clone();
+    redoer.add_undo(&serialized_scene);
 
-//     let scene_deserializer = SceneDeserializer {
-//         type_registry: &derser_type_reg.read(),
-//     };
+    let mut deserializer = ron::de::Deserializer::from_str(&old_state).unwrap();
+    let derser_type_reg = type_registry.0.clone();
 
-//     let result = scene_deserializer.deserialize(&mut deserializer).unwrap();
-//     let mut entity_map: HashMap<Entity, Entity> = HashMap::new();
-//     for e in world.iter_entities() {
-//         entity_map.entry(e.id()).or_insert(e.id());
-//     }
+    let scene_deserializer = SceneDeserializer {
+        type_registry: &derser_type_reg.read(),
+    };
 
-//     if let Err(e) = result.write_to_world_with(world, &mut entity_map, &type_registry) {
-//         println!("Error updating world: {}", e);
-//     }
-// }
+    let result = scene_deserializer.deserialize(&mut deserializer).unwrap();
+    let mut entity_map: EntityHashMap<Entity> = EntityHashMap::<Entity>::default();
+    for e in world.iter_entities() {
+        entity_map.entry(e.id()).or_insert(e.id());
+    }
 
-// fn redo_on_keypress(world: &mut World) {
-//     let keys = world.resource::<Input<KeyCode>>().clone();
+    if let Err(e) = result.write_to_world_with(world, &mut entity_map, &type_registry) {
+        println!("Error updating world: {}", e);
+    }
+}
 
-//     if !(keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight])
-//         && keys.just_pressed(KeyCode::R))
-//     {
-//         return;
-//     }
+fn redo_on_keypress(world: &mut World) {
+    let keys = world.resource::<ButtonInput<KeyCode>>().clone();
 
-//     let scene = extract_undo_scene(world);
-//     let type_registry = world.resource::<AppTypeRegistry>().clone();
-//     let serialized_scene = scene.serialize_ron(&type_registry).unwrap();
-//     let undo_resource = world.resource_mut::<UndoResource>().into_inner();
-//     let redoer = &mut undo_resource.redoer;
+    if !(keys.any_pressed([KeyCode::ControlLeft, KeyCode::ControlRight])
+        && keys.just_pressed(KeyCode::KeyR))
+    {
+        return;
+    }
 
-//     let Some(old_state) = redoer.undo(&serialized_scene) else {
-//         return;
-//     };
+    let scene = extract_undo_scene(world);
+    let type_registry = world.resource::<AppTypeRegistry>().clone();
+    let serialized_scene = scene.serialize(&type_registry.read()).unwrap();
+    let undo_resource = world.resource_mut::<UndoResource>().into_inner();
+    let redoer = &mut undo_resource.redoer;
 
-//     let mut deserializer = ron::de::Deserializer::from_str(&old_state).unwrap();
-//     let derser_type_reg = type_registry.0.clone();
+    let Some(old_state) = redoer.undo(&serialized_scene) else {
+        return;
+    };
 
-//     let scene_deserializer = SceneDeserializer {
-//         type_registry: &derser_type_reg.read(),
-//     };
+    let mut deserializer = ron::de::Deserializer::from_str(&old_state).unwrap();
+    let derser_type_reg = type_registry.0.clone();
 
-//     let result = scene_deserializer.deserialize(&mut deserializer).unwrap();
-//     let mut entity_map: HashMap<Entity, Entity> = HashMap::new();
-//     for e in world.iter_entities() {
-//         entity_map.entry(e.id()).or_insert(e.id());
-//     }
+    let scene_deserializer = SceneDeserializer {
+        type_registry: &derser_type_reg.read(),
+    };
 
-//     if let Err(e) = result.write_to_world_with(world, &mut entity_map, &type_registry) {
-//         println!("Error updating world: {}", e);
-//     }
-// }
+    let result = scene_deserializer.deserialize(&mut deserializer).unwrap();
+    let mut entity_map: EntityHashMap<Entity> = EntityHashMap::<Entity>::default();
+    for e in world.iter_entities() {
+        entity_map.entry(e.id()).or_insert(e.id());
+    }
+
+    if let Err(e) = result.write_to_world_with(world, &mut entity_map, &type_registry) {
+        println!("Error updating world: {}", e);
+    }
+}
