@@ -7,18 +7,27 @@
 // };
 // use backends::raycast::bevy_mod_raycast::prelude::RaycastSource;
 
-use bevy::app::{App, Plugin, PluginGroup, Startup};
+use bevy::app::{App, Plugin, PluginGroup, Startup, Update};
 use bevy::asset::{Assets, Handle};
 use bevy::color::{Color, LinearRgba};
 use bevy::core_pipeline::core_3d::Camera3d;
-use bevy::ecs::system::{Commands, ResMut};
+use bevy::ecs::change_detection::Res;
+use bevy::ecs::event::EventReader;
+use bevy::ecs::entity::Entity;
+use bevy::ecs::query::{With, Without};
+use bevy::ecs::system::{Commands, ResMut, Query};
 use bevy::hierarchy::{BuildChildren, ChildBuild};
 use bevy::image::Image;
+use bevy::input::keyboard::KeyCode;
+use bevy::input::ButtonInput;
 use bevy::math::{
     prelude::{Cuboid, Plane3d},
     Mat4, Quat, Vec2, Vec3,
 };
-use bevy::pbr::{AmbientLight, MeshMaterial3d, PointLight, StandardMaterial};
+use bevy::pbr::{AmbientLight, MeshMaterial3d, PbrBundle, PointLight, StandardMaterial};
+use bevy::picking::events::{Cancel, Click, Pointer};
+use bevy::picking::mesh_picking::RayCastPickable;
+use bevy::prelude::MeshPickingPlugin;
 use bevy::render::{
     alpha::AlphaMode,
     camera::Camera,
@@ -32,6 +41,7 @@ use bevy::DefaultPlugins;
 pub mod file_io;
 
 mod ui_plugin;
+use transform_gizmo_bevy::GizmoCamera;
 use ui_plugin::{MainCamera, UiPlugin, UiState};
 
 mod window_persistence;
@@ -50,46 +60,35 @@ impl Plugin for GameEditorPlugin {
             }),
             ..default()
         }))
+        .add_plugins(MeshPickingPlugin)
         .add_plugins(UiPlugin)
         .add_plugins(WindowPersistencePlugin)
         .add_systems(Startup, setup)
+        .add_systems(Update, handle_pick_events)
         .register_type::<Option<Handle<Image>>>()
         .register_type::<AlphaMode>();
     }
 }
 
-// fn auto_add_raycast_target(
-//     mut commands: Commands,
-//     query: Query<Entity, (Without<Pickable>, With<Handle<Mesh>>)>,
-// ) {
-//     for entity in &query {
-//         commands.entity(entity).insert(PickableBundle::default());
-//     }
-// }
+fn handle_pick_events(
+    mut ui_state: ResMut<UiState>,
+    mut click_events: EventReader<Pointer<Click>>,
+    input: Res<ButtonInput<KeyCode>>,
+) {
+    for click in click_events.read() {
+        bevy::log::info!("{:?}", click.target);
+        let do_add = input.any_pressed([
+            KeyCode::ControlLeft,
+            KeyCode::ControlRight,
+            KeyCode::ShiftLeft,
+            KeyCode::ShiftRight,
+        ]);
 
-// fn handle_pick_events(
-//     mut ui_state: ResMut<UiState>,
-//     mut click_events: EventReader<Pointer<Click>>,
-//     mut deselect_events: EventReader<Pointer<Deselect>>,
-//     input: Res<Input<KeyCode>>,
-// ) {
-//     for click in click_events.read() {
-//         let do_add = input.any_pressed([
-//             KeyCode::ControlLeft,
-//             KeyCode::ControlRight,
-//             KeyCode::ShiftLeft,
-//             KeyCode::ShiftRight,
-//         ]);
-
-//         ui_state
-//             .selected_entities
-//             .select_maybe_add(click.target(), do_add);
-//     }
-
-//     for _ in deselect_events.read() {
-//         ui_state.selected_entities.clear();
-//     }
-// }
+        ui_state
+            .selected_entities
+            .select_maybe_add(click.target, do_add);
+    }
+}
 
 fn setup(
     mut commands: Commands,
@@ -210,6 +209,7 @@ fn setup(
         },
         Camera3d::default(),
         MainCamera,
+        GizmoCamera
     ));
 }
 

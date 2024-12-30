@@ -25,7 +25,7 @@ use egui_dock::{DockArea, DockState, NodeIndex, Style};
 // use self::bevy_ui_plugin::BevyUiPlugin;
 mod egui_persistence;
 use egui_persistence::EguiPersistence;
-use transform_gizmo_bevy::{GizmoHotkeys, GizmoMode, GizmoOptions, TransformGizmoPlugin};
+use transform_gizmo_bevy::{GizmoHotkeys, GizmoMode, GizmoOptions, GizmoTarget, TransformGizmoPlugin};
 
 // mod undo_plugin;
 // use undo_plugin::UndoPlugin;
@@ -45,8 +45,8 @@ impl Plugin for UiPlugin {
                 ..default()
             })
             .insert_resource(UiState::new())
-            .add_systems(Update, set_gizmo_mode)
-            // .add_systems(Update, update_gizmo_targets)
+            .add_systems(PostStartup, setup_gizmo)
+            .add_systems(Update, update_gizmo_targets)
             .add_systems(
                 PostUpdate,
                 show_ui_system
@@ -114,19 +114,19 @@ fn set_camera_viewport(
     }
 }
 
-fn set_gizmo_mode( 
-    input: Res<ButtonInput<KeyCode>>, 
-    mut ui_state: ResMut<UiState>
+fn setup_gizmo( 
+    mut gizmo: ResMut<GizmoOptions>
 ) {
-    for (key, mode) in [
-        (KeyCode::KeyR, GizmoMode::RotateView),
-        (KeyCode::KeyT, GizmoMode::TranslateView),
-        (KeyCode::KeyS, GizmoMode::ScaleUniform),
-    ] {
-        if input.just_pressed(key) {
-            ui_state.gizmo_mode = mode;
-        }
-    }
+    // gizmo.gizmo_modes.insert(GizmoMode::RotateView);
+    // gizmo.gizmo_modes.insert(GizmoMode::TranslateView);
+    // gizmo.gizmo_modes.insert(GizmoMode::ScaleUniform);
+
+    // gizmo.hotkeys = Some(GizmoHotkeys {
+    //     toggle_rotate: Some(KeyCode::KeyR),
+    //     toggle_translate: Some(KeyCode::KeyT),
+    //     toggle_scale: Some(KeyCode::KeyS),
+    //     ..default()
+    // });
 }
 
 #[derive(Eq, PartialEq)]
@@ -141,8 +141,7 @@ pub struct UiState {
     state: DockState<EguiWindow>,
     viewport_rect: egui::Rect,
     pub selected_entities: SelectedEntities,
-    selection: InspectorSelection,
-    gizmo_mode: GizmoMode,
+    selection: InspectorSelection
 }
 
 impl UiState {
@@ -159,20 +158,18 @@ impl UiState {
             state,
             selected_entities: SelectedEntities::default(),
             selection: InspectorSelection::Entities,
-            viewport_rect: egui::Rect::NOTHING,
-            gizmo_mode: GizmoMode::TranslateView,
+            viewport_rect: egui::Rect::NOTHING
         }
     }
 
     fn ui(&mut self, world: &mut World, ctx: &mut egui::Context) {
-        TopBottomPanel::new(TopBottomSide::Top, Id::new("menu")).show(ctx, draw_menu);
+        TopBottomPanel::new(TopBottomSide::Top, Id::new("Menu")).show(ctx, draw_menu);
 
         let mut tab_viewer = TabViewer {
             world,
             viewport_rect: &mut self.viewport_rect,
             selected_entities: &mut self.selected_entities,
-            selection: &mut self.selection,
-            gizmo_mode: self.gizmo_mode,
+            selection: &mut self.selection
         };
         DockArea::new(&mut self.state)
             .style(Style::from_egui(ctx.style().as_ref()))
@@ -193,8 +190,7 @@ struct TabViewer<'a> {
     world: &'a mut World,
     selected_entities: &'a mut SelectedEntities,
     selection: &'a mut InspectorSelection,
-    viewport_rect: &'a mut egui::Rect,
-    gizmo_mode: GizmoMode,
+    viewport_rect: &'a mut egui::Rect
 }
 
 impl egui_dock::TabViewer for TabViewer<'_> {
@@ -207,7 +203,6 @@ impl egui_dock::TabViewer for TabViewer<'_> {
         match window {
             EguiWindow::Game => {
                 *self.viewport_rect = ui.clip_rect();
-                bevy::log::info!("{:?}", self.viewport_rect);
             }
             EguiWindow::Hierarchy => {
                 let selected = hierarchy_ui(self.world, ui, self.selected_entities);
@@ -263,17 +258,18 @@ fn draw_menu(ui: &mut egui::Ui) {
     });
 }
 
-// fn update_gizmo_targets(
-//     world: &World,
-//     mut commands: Commands,
-//     ui_state: Res<UiState>
-// ) {
-//     if ui_state.selected_entities.len() != 1 {
-//         return;
-//     }
+fn update_gizmo_targets(
+    mut commands: Commands,
+    ui_state: Res<UiState>
+) {
+    if ui_state.selected_entities.len() != 1 {
+        return;
+    }
 
-//     let entity = world.entity(ui_state.selected_entities.first()());
-// }
+    let entity = ui_state.selected_entities.iter().next().unwrap();
+
+    commands.entity(entity).insert(GizmoTarget::default());
+}
 
 fn select_resource(
     ui: &mut egui::Ui,
