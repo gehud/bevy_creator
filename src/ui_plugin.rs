@@ -1,13 +1,15 @@
 use std::any::TypeId;
 
 use bevy::asset::{ReflectAsset, UntypedAssetId};
+use bevy::picking::pointer::{PointerAction, PointerButton, PointerInput, PressDirection};
+use bevy::picking::PickSet;
 use bevy::prelude::*;
 use bevy::reflect::TypeRegistry;
 use bevy::render::camera::{CameraProjection, Viewport};
 use bevy::window::PrimaryWindow;
-use bevy_egui::egui;
 use bevy_egui::EguiContext;
 use bevy_egui::EguiSet;
+use bevy_egui::{egui, EguiContexts};
 use bevy_inspector_egui::bevy_inspector::hierarchy::{hierarchy_ui, SelectedEntities};
 use bevy_inspector_egui::bevy_inspector::{
     self, ui_for_entities_shared_components, ui_for_entity_with_children,
@@ -20,12 +22,16 @@ use egui::Id;
 use egui::ScrollArea;
 use egui::SidePanel;
 use egui::TopBottomPanel;
-use egui_dock::{DockArea, DockState, NodeIndex, Style};
+use egui_dock::{dock_state, DockArea, DockState, NodeIndex, Style};
 
 // use self::bevy_ui_plugin::BevyUiPlugin;
 mod egui_persistence;
 use egui_persistence::EguiPersistence;
-use transform_gizmo_bevy::{GizmoHotkeys, GizmoMode, GizmoOptions, GizmoTarget, TransformGizmoPlugin};
+use transform_gizmo_bevy::{
+    GizmoHotkeys, GizmoMode, GizmoOptions, GizmoTarget, TransformGizmoPlugin,
+};
+
+use crate::selection::{Deselect, Select};
 
 // mod undo_plugin;
 // use undo_plugin::UndoPlugin;
@@ -45,16 +51,49 @@ impl Plugin for UiPlugin {
                 ..default()
             })
             .insert_resource(UiState::new())
-            .add_systems(PostStartup, setup_gizmo)
-            .add_systems(Update, update_gizmo_targets)
             .add_systems(
-                PostUpdate,
-                show_ui_system
-                    .before(EguiSet::ProcessOutput)
-                    .before(bevy_egui::systems::end_pass_system)
-                    .before(bevy::transform::TransformSystem::TransformPropagate),
-            )
-            .add_systems(PostUpdate, set_camera_viewport.after(show_ui_system));
+                PreUpdate,
+                (
+                    show_ui_system,
+                    set_camera_viewport,
+                    handle_selection,
+                )
+                    .chain()
+                    .before(PickSet::Backend)
+                    .after(EguiSet::BeginPass),
+            );
+    }
+}
+
+fn is_selection_grow(input: &Res<ButtonInput<KeyCode>>) -> bool {
+    input.any_pressed([
+        KeyCode::ControlLeft,
+        KeyCode::ControlRight,
+        KeyCode::ShiftLeft,
+        KeyCode::ShiftRight,
+    ])
+}
+
+fn handle_selection(
+    mut ui_state: ResMut<UiState>,
+    mut deselect_events: EventReader<Pointer<Deselect>>,
+    mut select_events: EventReader<Pointer<Select>>,
+    input: Res<ButtonInput<KeyCode>>,
+    mut commands: Commands
+) {
+    for e in deselect_events.read() {
+        commands.entity(e.target).remove::<GizmoTarget>();
+        ui_state.selected_entities.remove(e.target);
+        bevy::log::info!("Deselect {:?}", e.target);
+    }
+    
+    for e in select_events.read() {
+        bevy::log::info!("Select {:?}", e.target);
+        commands.entity(e.target).insert(GizmoTarget::default());
+
+        ui_state
+            .selected_entities
+            .select_maybe_add(e.target, is_selection_grow(&input));
     }
 }
 
@@ -68,7 +107,7 @@ fn show_ui_system(world: &mut World) {
     else {
         return;
     };
-    
+
     let mut egui_context = egui_context.clone();
 
     world.resource_scope::<UiState, _>(|world, mut ui_state| {
@@ -114,21 +153,6 @@ fn set_camera_viewport(
     }
 }
 
-fn setup_gizmo( 
-    mut gizmo: ResMut<GizmoOptions>
-) {
-    // gizmo.gizmo_modes.insert(GizmoMode::RotateView);
-    // gizmo.gizmo_modes.insert(GizmoMode::TranslateView);
-    // gizmo.gizmo_modes.insert(GizmoMode::ScaleUniform);
-
-    // gizmo.hotkeys = Some(GizmoHotkeys {
-    //     toggle_rotate: Some(KeyCode::KeyR),
-    //     toggle_translate: Some(KeyCode::KeyT),
-    //     toggle_scale: Some(KeyCode::KeyS),
-    //     ..default()
-    // });
-}
-
 #[derive(Eq, PartialEq)]
 enum InspectorSelection {
     Entities,
@@ -141,7 +165,7 @@ pub struct UiState {
     state: DockState<EguiWindow>,
     viewport_rect: egui::Rect,
     pub selected_entities: SelectedEntities,
-    selection: InspectorSelection
+    selection: InspectorSelection,
 }
 
 impl UiState {
@@ -158,19 +182,22 @@ impl UiState {
             state,
             selected_entities: SelectedEntities::default(),
             selection: InspectorSelection::Entities,
-            viewport_rect: egui::Rect::NOTHING
+            viewport_rect: egui::Rect::NOTHING,
         }
     }
 
     fn ui(&mut self, world: &mut World, ctx: &mut egui::Context) {
-        TopBottomPanel::new(TopBottomSide::Top, Id::new("Menu")).show(ctx, draw_menu);
+        TopBottomPanel::new(TopBottomSide::Top, Id::new("Menu")).show(ctx, |ui| {
+            draw_menu(&mut self.state, ui);
+        });
 
         let mut tab_viewer = TabViewer {
             world,
             viewport_rect: &mut self.viewport_rect,
             selected_entities: &mut self.selected_entities,
-            selection: &mut self.selection
+            selection: &mut self.selection,
         };
+
         DockArea::new(&mut self.state)
             .style(Style::from_egui(ctx.style().as_ref()))
             .show(ctx, &mut tab_viewer);
@@ -190,7 +217,7 @@ struct TabViewer<'a> {
     world: &'a mut World,
     selected_entities: &'a mut SelectedEntities,
     selection: &'a mut InspectorSelection,
-    viewport_rect: &'a mut egui::Rect
+    viewport_rect: &'a mut egui::Rect,
 }
 
 impl egui_dock::TabViewer for TabViewer<'_> {
@@ -250,25 +277,13 @@ impl egui_dock::TabViewer for TabViewer<'_> {
     }
 }
 
-fn draw_menu(ui: &mut egui::Ui) {
-    ui.menu_button("File", |ui| {
-        if ui.button("Close").clicked() {
+fn draw_menu(dock_state: &mut DockState<EguiWindow>, ui: &mut egui::Ui) {
+    ui.menu_button("View", |ui| {
+        if ui.button("Game").clicked() {
+            dock_state.add_window(vec![EguiWindow::Game]);
             ui.close_menu();
         }
     });
-}
-
-fn update_gizmo_targets(
-    mut commands: Commands,
-    ui_state: Res<UiState>
-) {
-    if ui_state.selected_entities.len() != 1 {
-        return;
-    }
-
-    let entity = ui_state.selected_entities.iter().next().unwrap();
-
-    commands.entity(entity).insert(GizmoTarget::default());
 }
 
 fn select_resource(
