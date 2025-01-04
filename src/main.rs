@@ -23,7 +23,7 @@ fn main() {
         .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 present_mode: PresentMode::AutoNoVsync,
-                title: String::from("BevyCreator"),
+                title: String::from("BevyEditor"),
                 resolution: (1280., 720.).into(),
                 ..default()
             }),
