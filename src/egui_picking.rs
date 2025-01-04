@@ -17,13 +17,10 @@ use crate::selection::NoDeselect;
 pub struct EguiPickingPlugin;
 impl Plugin for EguiPickingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(
-            PreUpdate,
-            egui_picking.in_set(PickSet::Backend),
-        )
-        .insert_resource(EguiPickingSettings::default())
-        .register_type::<EguiPickingSettings>()
-        .add_systems(First, update_settings);
+        app.add_systems(PreUpdate, egui_picking.in_set(PickSet::Backend))
+            .insert_resource(EguiPickingSettings::default())
+            .register_type::<EguiPickingSettings>()
+            .add_systems(First, update_settings);
     }
 }
 
@@ -47,12 +44,8 @@ pub fn update_settings(
     if settings.is_added() || settings.is_changed() {
         for entity in &egui_context {
             match settings.allow_deselect {
-                true => commands
-                    .entity(entity)
-                    .remove::<NoDeselect>(),
-                false => commands
-                    .entity(entity)
-                    .try_insert(NoDeselect),
+                true => commands.entity(entity).remove::<NoDeselect>(),
+                false => commands.entity(entity).try_insert(NoDeselect),
             };
         }
     }

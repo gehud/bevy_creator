@@ -6,8 +6,7 @@ use bevy::input::ButtonInput;
 use bevy::math::UVec2;
 use bevy::picking::PickSet;
 use bevy::prelude::{
-    AppTypeRegistry, Camera, Component, EventReader, GlobalTransform, KeyCode,
-    Pointer, Projection, Query, ReflectResource, Res, Transform, With, World,
+    AppTypeRegistry, Camera, Click, Component, EventReader, GlobalTransform, KeyCode, Pointer, Projection, Query, ReflectResource, Res, Transform, With, World
 };
 use bevy::prelude::{IntoSystemConfigs, ResMut, Resource};
 
@@ -28,6 +27,7 @@ use transform_gizmo_egui::{
     math::{Quat, Transform as GizmoTransform, Vec3},
     EnumSet, Gizmo, GizmoConfig, GizmoExt, GizmoMode, GizmoOrientation,
 };
+use crate::transform_gizmo_ext::GizmoNewExt;
 
 use crate::egui_config::EguiConfigPlugin;
 use crate::egui_picking::EguiPickingPlugin;
@@ -133,7 +133,7 @@ impl EditorState {
 fn handle_selection(
     mut editor_state: ResMut<EditorState>,
     mut deselect_events: EventReader<Pointer<Deselect>>,
-    mut select_events: EventReader<Pointer<Select>>,
+    mut select_events: EventReader<Pointer<Select>>
 ) {
     for e in deselect_events.read() {
         editor_state.selected_entities.remove(e.target);
@@ -332,7 +332,7 @@ fn draw_gizmo(
         ..default()
     });
 
-    if let Some(result) = gizmo.interact(ui, &selections).map(|(_, res)| res) {
+    if let Some(result) = gizmo.interact_new(ui, &selections).map(|(_, res)| res) {
         for (entity, data) in transform_entities.iter().zip(result.iter()) {
             let mut transform = world.get_mut::<Transform>(*entity).unwrap();
             transform.translation = Vec3::new(

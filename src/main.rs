@@ -17,6 +17,7 @@ mod egui_config;
 mod egui_picking;
 mod selection;
 mod window_config;
+mod transform_gizmo_ext;
 
 fn main() {
     App::new()
