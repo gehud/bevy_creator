@@ -1,106 +1,166 @@
 use std::any::TypeId;
 
+use bevy::app::{App, Plugin, PreUpdate};
 use bevy::asset::{ReflectAsset, UntypedAssetId};
-use bevy::picking::pointer::{PointerAction, PointerButton, PointerInput, PressDirection};
+use bevy::input::ButtonInput;
+use bevy::math::UVec2;
 use bevy::picking::PickSet;
-use bevy::prelude::*;
+use bevy::prelude::{
+    AppTypeRegistry, Camera, Component, EventReader, GlobalTransform, KeyCode,
+    Pointer, Projection, Query, ReflectResource, Res, Transform, With, World,
+};
+use bevy::prelude::{IntoSystemConfigs, ResMut, Resource};
+
 use bevy::reflect::TypeRegistry;
 use bevy::render::camera::{CameraProjection, Viewport};
-use bevy::window::PrimaryWindow;
-use bevy_egui::EguiContext;
-use bevy_egui::EguiSet;
-use bevy_egui::{egui, EguiContexts};
+use bevy::utils::default;
+use bevy::window::{PrimaryWindow, Window};
+use bevy_egui::egui::panel::TopBottomSide;
+use bevy_egui::egui::{Id, TopBottomPanel};
+use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSet};
 use bevy_inspector_egui::bevy_inspector::hierarchy::{hierarchy_ui, SelectedEntities};
 use bevy_inspector_egui::bevy_inspector::{
     self, ui_for_entities_shared_components, ui_for_entity_with_children,
 };
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
-use egui::panel::Side;
-use egui::panel::TopBottomSide;
-use egui::CentralPanel;
-use egui::Id;
-use egui::ScrollArea;
-use egui::SidePanel;
-use egui::TopBottomPanel;
-use egui_dock::{dock_state, DockArea, DockState, NodeIndex, Style};
-
-// use self::bevy_ui_plugin::BevyUiPlugin;
-mod egui_persistence;
-use egui_persistence::EguiPersistence;
-use transform_gizmo_bevy::{
-    GizmoHotkeys, GizmoMode, GizmoOptions, GizmoTarget, TransformGizmoPlugin,
+use egui_dock::{DockArea, DockState, NodeIndex};
+use transform_gizmo_egui::{
+    math::{Quat, Transform as GizmoTransform, Vec3},
+    EnumSet, Gizmo, GizmoConfig, GizmoExt, GizmoMode, GizmoOrientation,
 };
 
+use crate::egui_config::EguiConfigPlugin;
+use crate::egui_picking::EguiPickingPlugin;
 use crate::selection::{Deselect, Select};
 
-// mod undo_plugin;
-// use undo_plugin::UndoPlugin;
+pub struct EditorPlugin;
 
-pub struct UiPlugin;
-
-impl Plugin for UiPlugin {
+impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(DefaultInspectorConfigPlugin)
-            .add_plugins(bevy_egui::EguiPlugin)
-            .add_plugins(EguiPersistence)
-            .add_plugins(TransformGizmoPlugin)
-            // .add_plugins(BevyUiPlugin)
-            // .add_plugins(UndoPlugin)
-            .insert_resource(GizmoOptions {
-                hotkeys: Some(GizmoHotkeys::default()),
-                ..default()
-            })
-            .insert_resource(UiState::new())
+        app.add_plugins(EguiPlugin)
+            .add_plugins(EguiConfigPlugin)
+            .add_plugins(EguiPickingPlugin)
+            .add_plugins(DefaultInspectorConfigPlugin)
+            .insert_resource(EditorState::new())
             .add_systems(
                 PreUpdate,
                 (
-                    show_ui_system,
-                    set_camera_viewport,
                     handle_selection,
+                    set_gizmo_mode,
+                    show_ui,
+                    set_camera_viewport,
                 )
                     .chain()
-                    .before(PickSet::Backend)
-                    .after(EguiSet::BeginPass),
+                    .after(EguiSet::BeginPass)
+                    .before(PickSet::Backend),
             );
-    }
-}
-
-fn is_selection_grow(input: &Res<ButtonInput<KeyCode>>) -> bool {
-    input.any_pressed([
-        KeyCode::ControlLeft,
-        KeyCode::ControlRight,
-        KeyCode::ShiftLeft,
-        KeyCode::ShiftRight,
-    ])
-}
-
-fn handle_selection(
-    mut ui_state: ResMut<UiState>,
-    mut deselect_events: EventReader<Pointer<Deselect>>,
-    mut select_events: EventReader<Pointer<Select>>,
-    input: Res<ButtonInput<KeyCode>>,
-    mut commands: Commands
-) {
-    for e in deselect_events.read() {
-        commands.entity(e.target).remove::<GizmoTarget>();
-        ui_state.selected_entities.remove(e.target);
-        bevy::log::info!("Deselect {:?}", e.target);
-    }
-    
-    for e in select_events.read() {
-        bevy::log::info!("Select {:?}", e.target);
-        commands.entity(e.target).insert(GizmoTarget::default());
-
-        ui_state
-            .selected_entities
-            .select_maybe_add(e.target, is_selection_grow(&input));
     }
 }
 
 #[derive(Component)]
 pub struct MainCamera;
 
-fn show_ui_system(world: &mut World) {
+#[derive(Eq, PartialEq)]
+enum InspectorSelection {
+    Entities,
+    Resource(TypeId, String),
+    Asset(TypeId, String, UntypedAssetId),
+}
+
+#[derive(Debug, serde::Deserialize, serde::Serialize)]
+pub enum EguiWindow {
+    Game,
+    Hierarchy,
+    Resources,
+    Assets,
+    Inspector,
+}
+
+#[derive(Resource)]
+pub struct EditorState {
+    pub docking: DockState<EguiWindow>,
+
+    viewport_rect: egui::Rect,
+    pub selected_entities: SelectedEntities,
+    selection: InspectorSelection,
+
+    gizmo: Gizmo,
+    gizmo_modes: EnumSet<GizmoMode>,
+}
+
+impl EditorState {
+    fn new() -> Self {
+        let mut state = DockState::new(vec![EguiWindow::Game]);
+        let tree = state.main_surface_mut();
+        let [game, _inspector] =
+            tree.split_right(NodeIndex::root(), 0.75, vec![EguiWindow::Inspector]);
+        let [game, _hierarchy] = tree.split_left(game, 0.2, vec![EguiWindow::Hierarchy]);
+        let [_game, _bottom] =
+            tree.split_below(game, 0.8, vec![EguiWindow::Resources, EguiWindow::Assets]);
+
+        Self {
+            docking: state,
+            selection: InspectorSelection::Entities,
+            selected_entities: SelectedEntities::default(),
+            viewport_rect: egui::Rect::NOTHING,
+            gizmo: Gizmo::default(),
+            gizmo_modes: GizmoMode::all(),
+        }
+    }
+
+    fn ui(&mut self, world: &mut World, ctx: &egui::Context) {
+        TopBottomPanel::new(TopBottomSide::Top, Id::new("menu")).show(ctx, |ui| {
+            draw_menu(&mut self.docking, ui);
+        });
+
+        let mut tab_viewer = TabViewer {
+            world,
+            viewport_rect: &mut self.viewport_rect,
+            selected_entities: &mut self.selected_entities,
+            selection: &mut self.selection,
+            gizmo_modes: &mut self.gizmo_modes,
+            gizmo: &mut self.gizmo,
+        };
+
+        DockArea::new(&mut self.docking)
+            .style(egui_dock::Style::from_egui(ctx.style().as_ref()))
+            .show(ctx, &mut tab_viewer);
+
+        ctx.request_repaint();
+    }
+}
+
+fn handle_selection(
+    mut editor_state: ResMut<EditorState>,
+    mut deselect_events: EventReader<Pointer<Deselect>>,
+    mut select_events: EventReader<Pointer<Select>>,
+) {
+    for e in deselect_events.read() {
+        editor_state.selected_entities.remove(e.target);
+    }
+
+    for e in select_events.read() {
+        editor_state
+            .selected_entities
+            .select_maybe_add(e.target, true);
+    }
+}
+
+fn set_gizmo_mode(input: Res<ButtonInput<KeyCode>>, mut editor_state: ResMut<EditorState>) {
+    let keybinds = [
+        (KeyCode::KeyR, GizmoMode::all_rotate()),
+        (KeyCode::KeyT, GizmoMode::all_translate()),
+        (KeyCode::KeyS, GizmoMode::all_scale()),
+    ];
+
+    for (key, mode) in keybinds {
+        if input.just_pressed(key) {
+            editor_state.gizmo_modes = mode;
+        }
+    }
+}
+
+fn show_ui(world: &mut World) {
     let Ok(egui_context) = world
         .query_filtered::<&mut EguiContext, With<PrimaryWindow>>()
         .get_single(world)
@@ -110,14 +170,13 @@ fn show_ui_system(world: &mut World) {
 
     let mut egui_context = egui_context.clone();
 
-    world.resource_scope::<UiState, _>(|world, mut ui_state| {
-        ui_state.ui(world, egui_context.get_mut())
+    world.resource_scope::<EditorState, _>(|world, mut editor_state| {
+        editor_state.ui(world, egui_context.get_mut())
     });
 }
 
-// make camera only render to view not obstructed by UI
 fn set_camera_viewport(
-    ui_state: Res<UiState>,
+    editor_state: Res<EditorState>,
     primary_window: Query<&mut Window, With<PrimaryWindow>>,
     egui_settings: Query<&bevy_egui::EguiSettings>,
     mut cameras: Query<&mut Camera, With<MainCamera>>,
@@ -130,8 +189,8 @@ fn set_camera_viewport(
 
     let scale_factor = window.scale_factor() * egui_settings.single().scale_factor;
 
-    let viewport_pos = ui_state.viewport_rect.left_top().to_vec2() * scale_factor;
-    let viewport_size = ui_state.viewport_rect.size() * scale_factor;
+    let viewport_pos = editor_state.viewport_rect.left_top().to_vec2() * scale_factor;
+    let viewport_size = editor_state.viewport_rect.size() * scale_factor;
 
     let physical_position = UVec2::new(viewport_pos.x as u32, viewport_pos.y as u32);
     let physical_size = UVec2::new(viewport_size.x as u32, viewport_size.y as u32);
@@ -153,71 +212,13 @@ fn set_camera_viewport(
     }
 }
 
-#[derive(Eq, PartialEq)]
-enum InspectorSelection {
-    Entities,
-    Resource(TypeId, String),
-    Asset(TypeId, String, UntypedAssetId),
-}
-
-#[derive(Resource)]
-pub struct UiState {
-    state: DockState<EguiWindow>,
-    viewport_rect: egui::Rect,
-    pub selected_entities: SelectedEntities,
-    selection: InspectorSelection,
-}
-
-impl UiState {
-    pub fn new() -> Self {
-        let mut state = DockState::new(vec![EguiWindow::Game]);
-        let tree = state.main_surface_mut();
-        let [game, _inspector] =
-            tree.split_right(NodeIndex::root(), 0.75, vec![EguiWindow::Inspector]);
-        let [game, _hierarchy] = tree.split_left(game, 0.2, vec![EguiWindow::Hierarchy]);
-        let [_game, _bottom] =
-            tree.split_below(game, 0.8, vec![EguiWindow::Resources, EguiWindow::Assets]);
-
-        Self {
-            state,
-            selected_entities: SelectedEntities::default(),
-            selection: InspectorSelection::Entities,
-            viewport_rect: egui::Rect::NOTHING,
-        }
-    }
-
-    fn ui(&mut self, world: &mut World, ctx: &mut egui::Context) {
-        TopBottomPanel::new(TopBottomSide::Top, Id::new("Menu")).show(ctx, |ui| {
-            draw_menu(&mut self.state, ui);
-        });
-
-        let mut tab_viewer = TabViewer {
-            world,
-            viewport_rect: &mut self.viewport_rect,
-            selected_entities: &mut self.selected_entities,
-            selection: &mut self.selection,
-        };
-
-        DockArea::new(&mut self.state)
-            .style(Style::from_egui(ctx.style().as_ref()))
-            .show(ctx, &mut tab_viewer);
-    }
-}
-
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
-enum EguiWindow {
-    Game,
-    Hierarchy,
-    Resources,
-    Assets,
-    Inspector,
-}
-
 struct TabViewer<'a> {
     world: &'a mut World,
     selected_entities: &'a mut SelectedEntities,
     selection: &'a mut InspectorSelection,
     viewport_rect: &'a mut egui::Rect,
+    gizmo_modes: &'a mut EnumSet<GizmoMode>,
+    gizmo: &'a mut Gizmo,
 }
 
 impl egui_dock::TabViewer for TabViewer<'_> {
@@ -230,6 +231,13 @@ impl egui_dock::TabViewer for TabViewer<'_> {
         match window {
             EguiWindow::Game => {
                 *self.viewport_rect = ui.clip_rect();
+                draw_gizmo(
+                    self.world,
+                    self.selected_entities,
+                    self.gizmo,
+                    *self.gizmo_modes,
+                    ui,
+                );
             }
             EguiWindow::Hierarchy => {
                 let selected = hierarchy_ui(self.world, ui, self.selected_entities);
@@ -275,6 +283,76 @@ impl egui_dock::TabViewer for TabViewer<'_> {
     fn clear_background(&self, window: &Self::Tab) -> bool {
         !matches!(window, EguiWindow::Game)
     }
+}
+
+fn draw_gizmo(
+    world: &mut World,
+    selected_entities: &mut SelectedEntities,
+    gizmo: &mut Gizmo,
+    gizmo_modes: EnumSet<GizmoMode>,
+    ui: &mut egui::Ui,
+) {
+    if selected_entities.len() == 0 {
+        return;
+    }
+
+    let transform_entities = selected_entities
+        .iter()
+        .take_while(|item| world.get::<Transform>(*item).is_some())
+        .collect::<Vec<_>>();
+
+    if transform_entities.len() == 0 {
+        return;
+    }
+
+    let selections = transform_entities
+        .iter()
+        .map(|item| {
+            let transform = world.get::<Transform>(*item).unwrap();
+            GizmoTransform::from_scale_rotation_translation(
+                transform.scale.as_dvec3(),
+                transform.rotation.as_dquat(),
+                transform.translation.as_dvec3(),
+            )
+        })
+        .collect::<Vec<_>>();
+
+    let (cam_transform, projection) = world
+        .query_filtered::<(&GlobalTransform, &Projection), With<MainCamera>>()
+        .single(world);
+
+    let view_matrix = cam_transform.compute_matrix().inverse();
+    let projection_matrix = projection.get_clip_from_view();
+
+    gizmo.update_config(GizmoConfig {
+        view_matrix: view_matrix.as_dmat4().into(),
+        projection_matrix: projection_matrix.as_dmat4().into(),
+        orientation: GizmoOrientation::Global,
+        modes: gizmo_modes,
+        ..default()
+    });
+
+    if let Some(result) = gizmo.interact(ui, &selections).map(|(_, res)| res) {
+        for (entity, data) in transform_entities.iter().zip(result.iter()) {
+            let mut transform = world.get_mut::<Transform>(*entity).unwrap();
+            transform.translation = Vec3::new(
+                data.translation.x as f32,
+                data.translation.y as f32,
+                data.translation.z as f32,
+            );
+            transform.rotation = Quat::from_xyzw(
+                data.rotation.v.x as f32,
+                data.rotation.v.y as f32,
+                data.rotation.v.z as f32,
+                data.rotation.s as f32,
+            );
+            transform.scale = Vec3::new(
+                data.scale.x as f32,
+                data.scale.y as f32,
+                data.scale.z as f32,
+            );
+        }
+    };
 }
 
 fn draw_menu(dock_state: &mut DockState<EguiWindow>, ui: &mut egui::Ui) {

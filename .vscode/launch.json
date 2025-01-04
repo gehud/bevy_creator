@@ -1,18 +1,21 @@
 {
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'BevyCreator'",
+            "name": "Debug executable 'BevyEditor'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=BevyCreator",
-                    "--package=bevy_creator"
+                    "--bin=BevyEditor",
+                    "--package=bevy_editor"
                 ],
                 "filter": {
-                    "name": "BevyCreator",
+                    "name": "BevyEditor",
                     "kind": "bin"
                 }
             },
@@ -22,16 +25,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'BevyCreator'",
+            "name": "Debug unit tests in executable 'BevyEditor'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=BevyCreator",
-                    "--package=bevy_creator"
+                    "--bin=BevyEditor",
+                    "--package=bevy_editor"
                 ],
                 "filter": {
-                    "name": "BevyCreator",
+                    "name": "BevyEditor",
                     "kind": "bin"
                 }
             },

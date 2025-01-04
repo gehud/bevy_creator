@@ -1,27 +1,26 @@
-use bevy::{prelude::*, window::PresentMode};
+use bevy::{
+    app::App,
+    prelude::{MeshPickingPlugin, PluginGroup},
+    utils::default,
+    window::{PresentMode, Window, WindowPlugin},
+    DefaultPlugins,
+};
+use demo_scene::DemoScenePlugin;
+use editor::EditorPlugin;
+use selection::SelectionPlugin;
+use window_config::WindowConfigPlugin;
 
-mod egui_picking_plugin;
-pub use egui_picking_plugin::EguiPickingPlugin;
-
-mod selection;
-pub use selection::SelectionPlugin;
-
-pub mod file_io;
-
-mod window_persistence;
-use window_persistence::WindowPersistencePlugin;
-
-mod ui_plugin;
-use ui_plugin::UiPlugin;
-
+mod config;
 mod demo_scene;
-pub use demo_scene::DemoScenePlugin;
+mod editor;
+mod egui_config;
+mod egui_picking;
+mod selection;
+mod window_config;
 
-pub struct GameEditorPlugin;
-
-impl Plugin for GameEditorPlugin {
-    fn build(&self, app: &mut App) {
-        app.add_plugins(DefaultPlugins.set(WindowPlugin {
+fn main() {
+    App::new()
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
             primary_window: Some(Window {
                 present_mode: PresentMode::AutoNoVsync,
                 title: String::from("BevyCreator"),
@@ -30,17 +29,10 @@ impl Plugin for GameEditorPlugin {
             }),
             ..default()
         }))
+        .add_plugins(WindowConfigPlugin)
         .add_plugins(MeshPickingPlugin)
-        .add_plugins(EguiPickingPlugin)
         .add_plugins(SelectionPlugin)
-        .add_plugins(WindowPersistencePlugin)
-        .add_plugins(UiPlugin)
         .add_plugins(DemoScenePlugin)
-        .register_type::<Option<Handle<Image>>>()
-        .register_type::<AlphaMode>();
-    }
-}
-
-fn main() {
-    App::new().add_plugins(GameEditorPlugin).run();
+        .add_plugins(EditorPlugin)
+        .run();
 }

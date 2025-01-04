@@ -18,7 +18,7 @@ pub struct EguiPickingPlugin;
 impl Plugin for EguiPickingPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
-            PreUpdate, // This is important. If the system is put into the picking set in PreUpdate, the egui frame will not have been constructed, and the backend will not report egui hits, because the user doesn't build egui until the Update schedule. The downside to this is that the backend will always be one frame out of date. The only way to solve this is to do all of your egui work in PreUpdate before the picking backend set, then change this system to run in the picking set.
+            PreUpdate,
             egui_picking.in_set(PickSet::Backend),
         )
         .insert_resource(EguiPickingSettings::default())

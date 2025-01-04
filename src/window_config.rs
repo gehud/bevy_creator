@@ -1,16 +1,22 @@
-use crate::file_io::{read_json_config, save_json_config};
+use crate::config::{read_json_config, save_json_config};
 use bevy::{
     app::{App, Plugin, PreUpdate, Startup},
-    ecs::{entity::Entity, event::EventReader, query::With, system::{NonSend, Query}},
-    window::{PrimaryWindow, Window, WindowMode, WindowPosition, WindowResolution}, winit::WinitWindows,
+    ecs::{
+        entity::Entity,
+        event::EventReader,
+        query::With,
+        system::{NonSend, Query},
+    },
+    window::{PrimaryWindow, Window, WindowMode, WindowPosition, WindowResolution},
+    winit::WinitWindows,
 };
 use serde::{Deserialize, Serialize};
 
 const FILE_NAME: &str = "window_config";
 
-pub struct WindowPersistencePlugin;
+pub struct WindowConfigPlugin;
 
-impl Plugin for WindowPersistencePlugin {
+impl Plugin for WindowConfigPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, restore_window_state)
             .add_systems(PreUpdate, on_before_close);
@@ -31,11 +37,11 @@ fn restore_window_state(mut primary_window: Query<&mut Window, With<PrimaryWindo
     let mut window = primary_window.single_mut();
 
     let Some(config) = load_window_config() else {
-        println!("Could not load window config file");
+        bevy::log::info!("Could not load window config file");
         return;
     };
 
-    println!("Loaded window config file");
+    bevy::log::info!("Loaded window config file");
     window.resolution = WindowResolution::new(
         config.width as f32 / config.scale_factor as f32,
         config.height as f32 / config.scale_factor as f32,

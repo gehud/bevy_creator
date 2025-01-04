@@ -1,36 +1,37 @@
 use bevy::prelude::*;
 use egui_dock::DockState;
 
-use crate::file_io::{read_json_config, save_json_config};
-
-use super::{EguiWindow, UiState};
+use crate::{
+    config::{read_json_config, save_json_config},
+    editor::{EguiWindow, EditorState},
+};
 
 const FILE_NAME: &str = "egui_config";
 
-pub struct EguiPersistence;
+pub struct EguiConfigPlugin;
 
-impl Plugin for EguiPersistence {
+impl Plugin for EguiConfigPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, restore_panel_state)
             .add_systems(PreUpdate, on_before_close);
     }
 }
 
-fn restore_panel_state(mut ui_state: ResMut<UiState>) {
+fn restore_panel_state(mut editor_state: ResMut<EditorState>) {
     let Some(state) = load_panel_config() else {
-        println!("Could not load egui panel config file");
+        bevy::log::info!("Could not load egui panel config file");
         return;
     };
 
-    ui_state.state = state;
+    editor_state.docking = state;
 }
 
 fn on_before_close(
-    ui_state: Res<UiState>,
+    editor_state: Res<EditorState>,
     mut ev_window_will_close: EventReader<bevy::window::WindowCloseRequested>,
 ) {
     for _ in ev_window_will_close.read() {
-        save_panel_config(&ui_state.state);
+        save_panel_config(&editor_state.docking);
     }
 }
 

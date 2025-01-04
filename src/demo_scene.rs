@@ -1,7 +1,6 @@
 use bevy::prelude::*;
-use transform_gizmo_bevy::GizmoCamera;
 
-use crate::{selection::PickSelection, ui_plugin::MainCamera};
+use crate::{selection::PickSelection, editor::MainCamera};
 
 pub struct DemoScenePlugin;
 
@@ -135,7 +134,6 @@ fn setup_scene(
             ..default()
         },
         Camera3d::default(),
-        MainCamera,
-        GizmoCamera
+        MainCamera
     ));
 }
