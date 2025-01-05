@@ -20,6 +20,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     config::{read_json_config, save_json_config},
+    editor::SelectedProject,
     AppSet, AppState,
 };
 
@@ -87,6 +88,7 @@ fn save_on_exit(
 fn ui(
     mut contexts: EguiContexts,
     mut state: ResMut<ProjectsState>,
+    mut selected_project: ResMut<SelectedProject>,
     mut next_state: ResMut<NextState<AppState>>,
 ) {
     if let Some(ctx) = contexts.try_ctx_mut() {
@@ -120,7 +122,12 @@ fn ui(
                         .button(project_dir.file_name().unwrap().to_string_lossy())
                         .clicked()
                     {
-                        open_project(&state, &mut next_state, project_dir.clone());
+                        open_project(
+                            &state,
+                            &mut next_state,
+                            &mut selected_project,
+                            project_dir.clone(),
+                        );
                     }
                 }
             });
@@ -128,11 +135,11 @@ fn ui(
     }
 }
 
-fn check_dir<P: AsRef<Path>>(dir_path: P) -> bool {
-    if dir_path.as_ref().exists() {
+fn check_dir<P: AsRef<Path>>(dir: P) -> bool {
+    if dir.as_ref().exists() {
         true
     } else {
-        fs::create_dir(dir_path)
+        fs::create_dir(dir)
             .inspect_err(|error| bevy::log::error!("{}", error))
             .is_ok()
     }
@@ -155,10 +162,12 @@ fn create_project(project_dir: PathBuf) -> bool {
 }
 
 fn open_project(
-    state: &ProjectsState,
+    state: &ResMut<ProjectsState>,
     next_state: &mut ResMut<NextState<AppState>>,
+    selected_prokect: &mut ResMut<SelectedProject>,
     project_dir: PathBuf,
 ) {
     save_config(state);
+    selected_prokect.dir = Some(project_dir);
     next_state.set(AppState::Editor);
 }

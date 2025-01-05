@@ -14,6 +14,7 @@ mod projects;
 mod selection;
 mod transform_gizmo_ext;
 mod window_config;
+mod panel;
 
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 enum AppState {
@@ -38,8 +39,7 @@ fn main() {
             }),
             ..default()
         }))
-        // .init_state::<AppState>()
-        .insert_state(AppState::Editor)
+        .init_state::<AppState>()
         .configure_sets(
             PreUpdate,
             AppSet::Egui

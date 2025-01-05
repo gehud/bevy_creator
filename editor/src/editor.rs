@@ -1,4 +1,5 @@
 use std::any::TypeId;
+use std::path::PathBuf;
 
 use bevy::app::{App, Plugin, PreUpdate};
 use bevy::asset::{ReflectAsset, UntypedAssetId};
@@ -9,8 +10,10 @@ use bevy::prelude::{
     Pointer, Projection, Query, ReflectResource, Res, Transform, With, World,
 };
 use bevy::prelude::{IntoSystemConfigs, ResMut, Resource};
+use bevy::utils::hashbrown::HashMap;
 
 use crate::demo_scene::DemoScenePlugin;
+use crate::panel::Panel;
 use crate::transform_gizmo_ext::GizmoNewExt;
 use crate::window_config::WindowConfigPlugin;
 use crate::{AppSet, AppState};
@@ -35,6 +38,9 @@ use transform_gizmo_egui::{
 use crate::egui_config::EguiConfigPlugin;
 use crate::selection::{Deselect, Select};
 
+pub type EditorTab = String;
+pub type EditorDockState = DockState<EditorTab>;
+
 pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
@@ -44,6 +50,7 @@ impl Plugin for EditorPlugin {
             .add_plugins(DemoScenePlugin)
             .add_plugins(DefaultInspectorConfigPlugin)
             .insert_resource(EditorState::new())
+            .init_resource::<SelectedProject>()
             .add_systems(OnEnter(AppState::Editor), setup_window)
             .add_systems(
                 PreUpdate,
@@ -81,12 +88,18 @@ pub enum EguiWindow {
     Hierarchy,
     Resources,
     Assets,
-    Inspector,
+    Inspector
+}
+
+#[derive(Default, Resource)]
+pub struct SelectedProject {
+    pub dir: Option<PathBuf>
 }
 
 #[derive(Resource)]
 pub struct EditorState {
-    pub docking: DockState<EguiWindow>,
+    pub docking: EditorDockState,
+    panels: HashMap<String, Box<dyn Panel>>,
 
     viewport_rect: egui::Rect,
     pub selected_entities: SelectedEntities,
@@ -98,16 +111,17 @@ pub struct EditorState {
 
 impl EditorState {
     fn new() -> Self {
-        let mut state = DockState::new(vec![EguiWindow::Game]);
+        let mut state = EditorDockState::new(vec![String::from("Game")]);
         let tree = state.main_surface_mut();
         let [game, _inspector] =
-            tree.split_right(NodeIndex::root(), 0.75, vec![EguiWindow::Inspector]);
-        let [game, _hierarchy] = tree.split_left(game, 0.2, vec![EguiWindow::Hierarchy]);
+            tree.split_right(NodeIndex::root(), 0.75, vec![String::from("Inspector")]);
+        let [game, _hierarchy] = tree.split_left(game, 0.2, vec![String::from("Hierarchy")]);
         let [_game, _bottom] =
-            tree.split_below(game, 0.8, vec![EguiWindow::Resources, EguiWindow::Assets]);
+            tree.split_below(game, 0.8, vec![String::from("Resources"), String::from("Assets")]);
 
         Self {
             docking: state,
+            panels: HashMap::default(),
             selection: InspectorSelection::Entities,
             selected_entities: SelectedEntities::default(),
             viewport_rect: egui::Rect::NOTHING,
@@ -123,6 +137,7 @@ impl EditorState {
 
         let mut tab_viewer = TabViewer {
             world,
+            panels: &mut self.panels,
             viewport_rect: &mut self.viewport_rect,
             selected_entities: &mut self.selected_entities,
             selection: &mut self.selection,
@@ -222,6 +237,7 @@ fn set_camera_viewport(
 
 struct TabViewer<'a> {
     world: &'a mut World,
+    panels: &'a mut HashMap<String, Box<dyn Panel>>,
     selected_entities: &'a mut SelectedEntities,
     selection: &'a mut InspectorSelection,
     viewport_rect: &'a mut egui::Rect,
@@ -230,32 +246,34 @@ struct TabViewer<'a> {
 }
 
 impl egui_dock::TabViewer for TabViewer<'_> {
-    type Tab = EguiWindow;
+    type Tab = EditorTab;
 
     fn ui(&mut self, ui: &mut egui_dock::egui::Ui, window: &mut Self::Tab) {
         let type_registry = self.world.resource::<AppTypeRegistry>().0.clone();
         let type_registry = type_registry.read();
 
-        match window {
-            EguiWindow::Game => {
-                *self.viewport_rect = ui.clip_rect();
-                draw_gizmo(
-                    self.world,
-                    self.selected_entities,
-                    self.gizmo,
-                    *self.gizmo_modes,
-                    ui,
-                );
+        if let Some(panel) = self.panels.get_mut(window) {
+            panel.draw(self.world, ui);
+        } else if window == "Game" {
+            *self.viewport_rect = ui.clip_rect();
+            draw_gizmo(
+                self.world,
+                self.selected_entities,
+                self.gizmo,
+                *self.gizmo_modes,
+                ui,
+            );
+        } else if window == "Hierarchy" {
+            let selected = hierarchy_ui(self.world, ui, self.selected_entities);
+            if selected {
+                *self.selection = InspectorSelection::Entities;
             }
-            EguiWindow::Hierarchy => {
-                let selected = hierarchy_ui(self.world, ui, self.selected_entities);
-                if selected {
-                    *self.selection = InspectorSelection::Entities;
-                }
-            }
-            EguiWindow::Resources => select_resource(ui, &type_registry, self.selection),
-            EguiWindow::Assets => select_asset(ui, &type_registry, self.world, self.selection),
-            EguiWindow::Inspector => match *self.selection {
+        } else if window == "Resources" {
+            select_resource(ui, &type_registry, self.selection)
+        } else if window == "Assets" {
+            select_asset(ui, &type_registry, self.world, self.selection)
+        } else if window == "Inspector" {
+            match *self.selection {
                 InspectorSelection::Entities => match self.selected_entities.as_slice() {
                     &[entity] => ui_for_entity_with_children(self.world, entity, ui),
                     entities => ui_for_entities_shared_components(self.world, entities, ui),
@@ -280,7 +298,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
                         &type_registry,
                     );
                 }
-            },
+            }
         }
     }
 
@@ -289,7 +307,7 @@ impl egui_dock::TabViewer for TabViewer<'_> {
     }
 
     fn clear_background(&self, window: &Self::Tab) -> bool {
-        !matches!(window, EguiWindow::Game)
+        window != "Game"
     }
 }
 
@@ -363,10 +381,10 @@ fn draw_gizmo(
     };
 }
 
-fn draw_menu(dock_state: &mut DockState<EguiWindow>, ui: &mut egui::Ui) {
+fn draw_menu(dock_state: &mut EditorDockState, ui: &mut egui::Ui) {
     ui.menu_button("View", |ui| {
         if ui.button("Game").clicked() {
-            dock_state.add_window(vec![EguiWindow::Game]);
+            dock_state.add_window(vec![String::from("Game")]);
             ui.close_menu();
         }
     });

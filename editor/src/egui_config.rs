@@ -1,9 +1,8 @@
 use bevy::prelude::*;
-use egui_dock::DockState;
 
 use crate::{
     config::{read_json_config, save_json_config},
-    editor::{EditorState, EguiWindow},
+    editor::{EditorDockState, EditorState},
     AppState,
 };
 
@@ -39,19 +38,19 @@ fn on_before_close(
     }
 }
 
-fn load_panel_config() -> Option<DockState<EguiWindow>> {
+fn load_panel_config() -> Option<EditorDockState> {
     let Ok(config) = read_json_config(CONFIG_NAME) else {
         return None;
     };
 
-    let Ok(state) = serde_json::from_str::<DockState<EguiWindow>>(config.as_str()) else {
+    let Ok(state) = serde_json::from_str::<EditorDockState>(config.as_str()) else {
         return None;
     };
 
     Some(state)
 }
 
-fn save_panel_config(state: &DockState<EguiWindow>) {
+fn save_panel_config(state: &EditorDockState) {
     let serialized = serde_json::to_string(state).unwrap();
     save_json_config(CONFIG_NAME, serialized);
 }
