@@ -16,8 +16,8 @@ pub fn save_json_config(file: &str, contents: String) {
 
     let result = write_json_config(file, contents);
     match result {
-        Ok(_) => bevy::log::info!("Saved {} config file", file),
-        Err(e) => bevy::log::error!("Error saving {} file: {}", file, e.kind()),
+        Ok(_) => bevy::log::info!("Saved \"{}\" config file", file),
+        Err(e) => bevy::log::error!("Error saving \"{}\" file: {}", file, e.kind()),
     }
 }
 

@@ -1,25 +1,32 @@
-use crate::config::{read_json_config, save_json_config};
+use crate::{
+    config::{read_json_config, save_json_config},
+    AppState,
+};
 use bevy::{
-    app::{App, Plugin, PreUpdate, Startup},
+    app::{App, Plugin, PreUpdate},
     ecs::{
         entity::Entity,
         event::EventReader,
         query::With,
         system::{NonSend, Query},
     },
+    prelude::{in_state, IntoSystemConfigs, OnEnter},
     window::{PrimaryWindow, Window, WindowMode, WindowPosition, WindowResolution},
     winit::WinitWindows,
 };
 use serde::{Deserialize, Serialize};
 
-const FILE_NAME: &str = "window_config";
+const CONFIG_NAME: &str = "window";
 
 pub struct WindowConfigPlugin;
 
 impl Plugin for WindowConfigPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, restore_window_state)
-            .add_systems(PreUpdate, on_before_close);
+        app.add_systems(OnEnter(AppState::Editor), restore_window_state)
+            .add_systems(
+                PreUpdate,
+                on_before_close.run_if(in_state(AppState::Editor)),
+            );
     }
 }
 
@@ -36,19 +43,19 @@ pub struct MainWindowConfig {
 fn restore_window_state(mut primary_window: Query<&mut Window, With<PrimaryWindow>>) {
     let mut window = primary_window.single_mut();
 
-    let Some(config) = load_window_config() else {
-        bevy::log::info!("Could not load window config file");
-        return;
+    if let Some(config) = load_window_config() {
+        bevy::log::info!("Loaded \"window\" config file");
+        window.resolution = WindowResolution::new(
+            config.width as f32 / config.scale_factor as f32,
+            config.height as f32 / config.scale_factor as f32,
+        );
+        window.mode = config.mode;
+        window.position = config.position;
+        window.set_maximized(config.maximized);
+    } else {
+        bevy::log::info!("Could not load \"window\" config file. Setting to default");
+        window.set_maximized(true);
     };
-
-    bevy::log::info!("Loaded window config file");
-    window.resolution = WindowResolution::new(
-        config.width as f32 / config.scale_factor as f32,
-        config.height as f32 / config.scale_factor as f32,
-    );
-    window.mode = config.mode;
-    window.position = config.position;
-    window.set_maximized(config.maximized);
 }
 
 fn on_before_close(
@@ -70,7 +77,7 @@ fn on_before_close(
 }
 
 fn load_window_config() -> Option<MainWindowConfig> {
-    let Ok(config) = read_json_config(FILE_NAME) else {
+    let Ok(config) = read_json_config(CONFIG_NAME) else {
         return None;
     };
 
@@ -92,5 +99,5 @@ fn save_window_state(window: &Window, maximized: bool) {
     };
 
     let serialized = serde_json::to_string(&config).unwrap();
-    save_json_config(FILE_NAME, serialized);
+    save_json_config(CONFIG_NAME, serialized);
 }

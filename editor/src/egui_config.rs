@@ -3,27 +3,31 @@ use egui_dock::DockState;
 
 use crate::{
     config::{read_json_config, save_json_config},
-    editor::{EguiWindow, EditorState},
+    editor::{EditorState, EguiWindow},
+    AppState,
 };
 
-const FILE_NAME: &str = "egui_config";
+const CONFIG_NAME: &str = "egui";
 
 pub struct EguiConfigPlugin;
 
 impl Plugin for EguiConfigPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, restore_panel_state)
-            .add_systems(PreUpdate, on_before_close);
+        app.add_systems(OnEnter(AppState::Editor), restore_panel_state)
+            .add_systems(
+                PreUpdate,
+                on_before_close.run_if(in_state(AppState::Editor)),
+            );
     }
 }
 
 fn restore_panel_state(mut editor_state: ResMut<EditorState>) {
-    let Some(state) = load_panel_config() else {
-        bevy::log::info!("Could not load egui panel config file");
-        return;
-    };
-
-    editor_state.docking = state;
+    if let Some(state) = load_panel_config() {
+        bevy::log::info!("Loaded \"egui\" config file");
+        editor_state.docking = state;
+    } else {
+        bevy::log::info!("Could not load \"egui\" config file. Setting to default");
+    }
 }
 
 fn on_before_close(
@@ -36,7 +40,7 @@ fn on_before_close(
 }
 
 fn load_panel_config() -> Option<DockState<EguiWindow>> {
-    let Ok(config) = read_json_config(FILE_NAME) else {
+    let Ok(config) = read_json_config(CONFIG_NAME) else {
         return None;
     };
 
@@ -49,5 +53,5 @@ fn load_panel_config() -> Option<DockState<EguiWindow>> {
 
 fn save_panel_config(state: &DockState<EguiWindow>) {
     let serialized = serde_json::to_string(state).unwrap();
-    save_json_config(FILE_NAME, serialized);
+    save_json_config(CONFIG_NAME, serialized);
 }

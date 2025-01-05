@@ -1,0 +1,10 @@
+[package]
+name = "bevy_app"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+crate-type = ["rlib", "dylib"]
+
+[dependencies]
+bevy_app = "0.15"

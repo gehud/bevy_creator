@@ -4,19 +4,23 @@ use bevy::app::{App, Plugin, PreUpdate};
 use bevy::asset::{ReflectAsset, UntypedAssetId};
 use bevy::input::ButtonInput;
 use bevy::math::UVec2;
-use bevy::picking::PickSet;
 use bevy::prelude::{
-    AppTypeRegistry, Camera, Click, Component, EventReader, GlobalTransform, KeyCode, Pointer, Projection, Query, ReflectResource, Res, Transform, With, World
+    in_state, AppTypeRegistry, Camera, Component, EventReader, GlobalTransform, KeyCode, OnEnter,
+    Pointer, Projection, Query, ReflectResource, Res, Transform, With, World,
 };
 use bevy::prelude::{IntoSystemConfigs, ResMut, Resource};
 
+use crate::demo_scene::DemoScenePlugin;
+use crate::transform_gizmo_ext::GizmoNewExt;
+use crate::window_config::WindowConfigPlugin;
+use crate::{AppSet, AppState};
 use bevy::reflect::TypeRegistry;
 use bevy::render::camera::{CameraProjection, Viewport};
 use bevy::utils::default;
 use bevy::window::{PrimaryWindow, Window};
 use bevy_egui::egui::panel::TopBottomSide;
 use bevy_egui::egui::{Id, TopBottomPanel};
-use bevy_egui::{egui, EguiContext, EguiPlugin, EguiSet};
+use bevy_egui::{egui, EguiContext};
 use bevy_inspector_egui::bevy_inspector::hierarchy::{hierarchy_ui, SelectedEntities};
 use bevy_inspector_egui::bevy_inspector::{
     self, ui_for_entities_shared_components, ui_for_entity_with_children,
@@ -25,23 +29,22 @@ use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use egui_dock::{DockArea, DockState, NodeIndex};
 use transform_gizmo_egui::{
     math::{Quat, Transform as GizmoTransform, Vec3},
-    EnumSet, Gizmo, GizmoConfig, GizmoExt, GizmoMode, GizmoOrientation,
+    EnumSet, Gizmo, GizmoConfig, GizmoMode, GizmoOrientation,
 };
-use crate::transform_gizmo_ext::GizmoNewExt;
 
 use crate::egui_config::EguiConfigPlugin;
-use crate::egui_picking::EguiPickingPlugin;
 use crate::selection::{Deselect, Select};
 
 pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(EguiPlugin)
+        app.add_plugins(WindowConfigPlugin)
             .add_plugins(EguiConfigPlugin)
-            .add_plugins(EguiPickingPlugin)
+            .add_plugins(DemoScenePlugin)
             .add_plugins(DefaultInspectorConfigPlugin)
             .insert_resource(EditorState::new())
+            .add_systems(OnEnter(AppState::Editor), setup_window)
             .add_systems(
                 PreUpdate,
                 (
@@ -51,10 +54,15 @@ impl Plugin for EditorPlugin {
                     set_camera_viewport,
                 )
                     .chain()
-                    .after(EguiSet::BeginPass)
-                    .before(PickSet::Backend),
+                    .in_set(AppSet::Egui)
+                    .run_if(in_state(AppState::Editor)),
             );
     }
+}
+
+fn setup_window(mut windows: Query<&mut Window, With<PrimaryWindow>>) {
+    let mut window = windows.single_mut();
+    window.title = "BevyEditor".into();
 }
 
 #[derive(Component)]
@@ -133,12 +141,12 @@ impl EditorState {
 fn handle_selection(
     mut editor_state: ResMut<EditorState>,
     mut deselect_events: EventReader<Pointer<Deselect>>,
-    mut select_events: EventReader<Pointer<Select>>
+    mut select_events: EventReader<Pointer<Select>>,
 ) {
     for e in deselect_events.read() {
         editor_state.selected_entities.remove(e.target);
     }
-
+    
     for e in select_events.read() {
         editor_state
             .selected_entities

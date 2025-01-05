@@ -17,10 +17,14 @@ use crate::selection::NoDeselect;
 pub struct EguiPickingPlugin;
 impl Plugin for EguiPickingPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, egui_picking.in_set(PickSet::Backend))
-            .insert_resource(EguiPickingSettings::default())
-            .register_type::<EguiPickingSettings>()
-            .add_systems(First, update_settings);
+        app.add_systems(
+            PreUpdate,
+            (update_settings, egui_picking)
+                .chain()
+                .in_set(PickSet::Backend),
+        )
+        .insert_resource(EguiPickingSettings::default())
+        .register_type::<EguiPickingSettings>();
     }
 }
 
@@ -39,14 +43,19 @@ pub struct EguiPointer;
 pub fn update_settings(
     mut commands: Commands,
     settings: Res<EguiPickingSettings>,
-    egui_context: Query<Entity, With<EguiContext>>,
+    egui_context: Query<(Entity, Option<&NoDeselect>), With<EguiContext>>,
 ) {
     if settings.is_added() || settings.is_changed() {
-        for entity in &egui_context {
-            match settings.allow_deselect {
-                true => commands.entity(entity).remove::<NoDeselect>(),
-                false => commands.entity(entity).try_insert(NoDeselect),
-            };
+        for (entity, tag) in &egui_context {
+            if settings.allow_deselect {
+                if tag.is_some() {
+                    commands.entity(entity).remove::<NoDeselect>();
+                }
+            } else {
+                if tag.is_none() {
+                    commands.entity(entity).insert(NoDeselect);
+                }
+            }
         }
     }
 }

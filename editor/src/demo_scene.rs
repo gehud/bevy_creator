@@ -1,12 +1,12 @@
 use bevy::prelude::*;
 
-use crate::{selection::PickSelection, editor::MainCamera};
+use crate::{editor::MainCamera, selection::PickSelection, AppState};
 
 pub struct DemoScenePlugin;
 
 impl Plugin for DemoScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup_scene);
+        app.add_systems(OnEnter(AppState::Editor), setup_scene);
     }
 }
 
@@ -29,7 +29,7 @@ fn setup_scene(
             base_color: Color::srgb(0.63, 0.065, 0.05),
             ..Default::default()
         })),
-        PickSelection::default()
+        PickSelection::default(),
     ));
 
     // right - green
@@ -42,7 +42,7 @@ fn setup_scene(
             base_color: Color::srgb(0.14, 0.45, 0.091),
             ..Default::default()
         })),
-        PickSelection::default()
+        PickSelection::default(),
     ));
 
     // bottom - white
@@ -56,7 +56,7 @@ fn setup_scene(
             base_color: Color::srgb(0.725, 0.71, 0.68),
             ..Default::default()
         })),
-        PickSelection::default()
+        PickSelection::default(),
     ));
 
     // top - white
@@ -72,7 +72,7 @@ fn setup_scene(
             base_color: Color::srgb(0.725, 0.71, 0.68),
             ..Default::default()
         })),
-        PickSelection::default()
+        PickSelection::default(),
     ));
 
     // back - white
@@ -89,7 +89,7 @@ fn setup_scene(
             base_color: Color::srgb(0.725, 0.71, 0.68),
             ..Default::default()
         })),
-        PickSelection::default()
+        PickSelection::default(),
     ));
 
     // ambient light
@@ -112,7 +112,7 @@ fn setup_scene(
                 emissive: LinearRgba::WHITE * 100.0,
                 ..Default::default()
             })),
-            PickSelection::default()
+            PickSelection::default(),
         ))
         .with_children(|builder| {
             builder.spawn((
@@ -134,6 +134,6 @@ fn setup_scene(
             ..default()
         },
         Camera3d::default(),
-        MainCamera
+        MainCamera,
     ));
 }

@@ -1,14 +1,5 @@
-use std::default;
-
-use bevy::utils::default;
-use bevy_egui::egui::{
-    self,
-    epaint::{RectShape, Vertex},
-    Mesh, PointerButton, Pos2, Rect, Rgba, Rounding, Sense, Stroke, TextureId, Ui, Vec2,
-};
-use transform_gizmo_egui::{
-    math::Transform, Color32, Gizmo, GizmoConfig, GizmoInteraction, GizmoResult,
-};
+use bevy_egui::egui::{epaint::Vertex, Mesh, PointerButton, Pos2, Rgba, Sense, Ui};
+use transform_gizmo_egui::{math::Transform, Gizmo, GizmoConfig, GizmoInteraction, GizmoResult};
 
 pub trait GizmoNewExt {
     fn interact_new(
