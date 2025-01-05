@@ -9,7 +9,8 @@ name = "BevyEditor"
 
 [dependencies]
 bevy = { version = "0.15", features = ["serialize"] }
-bevy_egui = { git = "https://github.com/vladbat00/bevy_egui.git" }
+
+bevy_egui = { git = "https://github.com/gehud/bevy_egui.git" }
 egui_dock = { version = "0.14", features = ["serde"] }
 transform-gizmo-egui = "0.4"
 bevy-inspector-egui = "0.28"

@@ -1,4 +1,4 @@
 [submodule "vendor/bevy_egui"]
 	path = vendor/bevy_egui
-	url = https://github.com/vladbat00/bevy_egui.git
-	branch = v0.30.0
+	url = https://github.com/gehud/bevy_egui.git
+	branch = v0.31.0
