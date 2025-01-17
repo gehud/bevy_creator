@@ -6,8 +6,7 @@ use bevy::asset::{ReflectAsset, UntypedAssetId};
 use bevy::input::ButtonInput;
 use bevy::math::UVec2;
 use bevy::prelude::{
-    in_state, AppTypeRegistry, Camera, Component, EventReader, GlobalTransform, KeyCode, OnEnter,
-    Pointer, Projection, Query, ReflectResource, Res, Transform, With, World,
+    in_state, AppTypeRegistry, Camera, Component, EventReader, GlobalTransform, KeyCode, OnEnter, Pointer, Projection, Query, ReflectResource, Res, Transform, With, World
 };
 use bevy::prelude::{IntoSystemConfigs, ResMut, Resource};
 use bevy::utils::hashbrown::HashMap;
@@ -23,7 +22,7 @@ use bevy::utils::default;
 use bevy::window::{PrimaryWindow, Window};
 use bevy_egui::egui::panel::TopBottomSide;
 use bevy_egui::egui::{Id, TopBottomPanel};
-use bevy_egui::{egui, EguiContext};
+use bevy_egui::{egui, EguiContext, EguiSettings};
 use bevy_inspector_egui::bevy_inspector::hierarchy::{hierarchy_ui, SelectedEntities};
 use bevy_inspector_egui::bevy_inspector::{
     self, ui_for_entities_shared_components, ui_for_entity_with_children,
@@ -159,13 +158,15 @@ impl EditorState {
 fn handle_selection(
     mut editor_state: ResMut<EditorState>,
     mut deselect_events: EventReader<Pointer<Deselect>>,
-    mut select_events: EventReader<Pointer<Select>>,
+    mut select_events: EventReader<Pointer<Select>>
 ) {
     for e in deselect_events.read() {
+        bevy::log::info!("Deselect {}", e.target);
         editor_state.selected_entities.remove(e.target);
     }
 
     for e in select_events.read() {
+        bevy::log::info!("Select {}", e.target);
         editor_state
             .selected_entities
             .select_maybe_add(e.target, true);
@@ -204,7 +205,7 @@ fn show_ui(world: &mut World) {
 fn set_camera_viewport(
     editor_state: Res<EditorState>,
     primary_window: Query<&mut Window, With<PrimaryWindow>>,
-    egui_settings: Query<&bevy_egui::EguiContextSettings>,
+    egui_settings: Query<&EguiSettings>,
     mut cameras: Query<&mut Camera, With<MainCamera>>,
 ) {
     let mut cam = cameras.single_mut();

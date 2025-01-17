@@ -1,17 +1,16 @@
 use std::{
-    fmt::Display,
     fs,
     path::{Path, PathBuf},
 };
 
 use bevy::{
     prelude::*,
-    window::{PrimaryWindow, WindowCloseRequested, WindowResolution},
+    window::{PrimaryWindow, WindowCloseRequested},
 };
 use bevy_egui::{
     egui::{
         panel::{Side, TopBottomSide},
-        CentralPanel, Id, Layout, RichText, SidePanel, TopBottomPanel,
+        CentralPanel, Id, RichText, SidePanel, TopBottomPanel,
     },
     EguiContexts,
 };

@@ -10,7 +10,7 @@ name = "BevyEditor"
 [dependencies]
 bevy = { git = "https://github.com/gehud/bevy.git", branch = "bevy_editor", features = ["serialize"] }
 bevy_egui = { git = "https://github.com/gehud/bevy_egui.git", branch = "bevy_editor" }
-egui_dock = { version = "0.15", features = ["serde"] }
+egui_dock = { version = "0.14", features = ["serde"] }
 transform-gizmo-egui = { git = "https://github.com/gehud/transform_gizmo.git" }
 bevy-inspector-egui = { git = "https://github.com/gehud/bevy_inspector_egui.git", branch = "bevy_editor" }
 rfd = "0.15.2"
