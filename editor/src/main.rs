@@ -1,5 +1,5 @@
 use bevy::{picking::PickSet, prelude::*, window::PresentMode};
-use bevy_egui::{EguiPlugin, EguiSet};
+use bevy_egui::{EguiPlugin, EguiPreUpdateSet};
 use editor::EditorPlugin;
 use egui_picking::EguiPickingPlugin;
 use projects::ProjectsPlugin;
@@ -10,11 +10,11 @@ mod demo_scene;
 mod editor;
 mod egui_config;
 mod egui_picking;
+mod panel;
 mod projects;
 mod selection;
 mod transform_gizmo_ext;
 mod window_config;
-mod panel;
 
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 enum AppState {
@@ -43,7 +43,8 @@ fn main() {
         .configure_sets(
             PreUpdate,
             AppSet::Egui
-                .after(EguiSet::BeginPass)
+                .after(EguiPreUpdateSet::BeginPass)
+                .after(bevy_egui::begin_pass_system)
                 .before(PickSet::Backend),
         )
         .add_plugins(EguiPlugin)

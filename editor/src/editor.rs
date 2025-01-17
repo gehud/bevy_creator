@@ -88,12 +88,12 @@ pub enum EguiWindow {
     Hierarchy,
     Resources,
     Assets,
-    Inspector
+    Inspector,
 }
 
 #[derive(Default, Resource)]
 pub struct SelectedProject {
-    pub dir: Option<PathBuf>
+    pub dir: Option<PathBuf>,
 }
 
 #[derive(Resource)]
@@ -116,8 +116,11 @@ impl EditorState {
         let [game, _inspector] =
             tree.split_right(NodeIndex::root(), 0.75, vec![String::from("Inspector")]);
         let [game, _hierarchy] = tree.split_left(game, 0.2, vec![String::from("Hierarchy")]);
-        let [_game, _bottom] =
-            tree.split_below(game, 0.8, vec![String::from("Resources"), String::from("Assets")]);
+        let [_game, _bottom] = tree.split_below(
+            game,
+            0.8,
+            vec![String::from("Resources"), String::from("Assets")],
+        );
 
         Self {
             docking: state,
@@ -161,7 +164,7 @@ fn handle_selection(
     for e in deselect_events.read() {
         editor_state.selected_entities.remove(e.target);
     }
-    
+
     for e in select_events.read() {
         editor_state
             .selected_entities
@@ -201,7 +204,7 @@ fn show_ui(world: &mut World) {
 fn set_camera_viewport(
     editor_state: Res<EditorState>,
     primary_window: Query<&mut Window, With<PrimaryWindow>>,
-    egui_settings: Query<&bevy_egui::EguiSettings>,
+    egui_settings: Query<&bevy_egui::EguiContextSettings>,
     mut cameras: Query<&mut Camera, With<MainCamera>>,
 ) {
     let mut cam = cameras.single_mut();

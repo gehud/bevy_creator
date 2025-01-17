@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["editor", "engine/*"]
+members = ["editor"]
 
 [workspace.package]
 version = "0.1.0"
@@ -14,5 +14,59 @@ opt-level = 1
 [profile.dev.package."*"]
 opt-level = 3
 
+[patch.'https://github.com/gehud/bevy']
+bevy = { path = "vendor/bevy" }
+bevy_a11y = { path = "vendor/bevy/crates/bevy_a11y" }
+bevy_animation = { path = "vendor/bevy/crates/bevy_animation" }
+bevy_app = { path = "vendor/bevy/crates/bevy_app" }
+bevy_asset = { path = "vendor/bevy/crates/bevy_asset" }
+bevy_audio = { path = "vendor/bevy/crates/bevy_audio" }
+bevy_color = { path = "vendor/bevy/crates/bevy_color" }
+bevy_core = { path = "vendor/bevy/crates/bevy_core" }
+bevy_core_pipeline = { path = "vendor/bevy/crates/bevy_core_pipeline" }
+bevy_derive = { path = "vendor/bevy/crates/bevy_derive" }
+bevy_dev_tools = { path = "vendor/bevy/crates/bevy_dev_tools" }
+bevy_diagnostic = { path = "vendor/bevy/crates/bevy_diagnostic" }
+bevy_dylib = { path = "vendor/bevy/crates/bevy_dylib" }
+bevy_ecs = { path = "vendor/bevy/crates/bevy_ecs" }
+bevy_encase_derive = { path = "vendor/bevy/crates/bevy_encase_derive" }
+bevy_gilrs = { path = "vendor/bevy/crates/bevy_gilrs" }
+bevy_gizmos = { path = "vendor/bevy/crates/bevy_gizmos" }
+bevy_gltf = { path = "vendor/bevy/crates/bevy_gltf" }
+bevy_hierarchy = { path = "vendor/bevy/crates/bevy_hierarchy" }
+bevy_image = { path = "vendor/bevy/crates/bevy_image" }
+bevy_input = { path = "vendor/bevy/crates/bevy_input" }
+bevy_internal = { path = "vendor/bevy/crates/bevy_internal" }
+bevy_log = { path = "vendor/bevy/crates/bevy_log" }
+bevy_macro_utils = { path = "vendor/bevy/crates/bevy_macro_utils" }
+bevy_math = { path = "vendor/bevy/crates/bevy_math" }
+bevy_mesh = { path = "vendor/bevy/crates/bevy_mesh" }
+bevy_mikktspace = { path = "vendor/bevy/crates/bevy_mikktspace" }
+bevy_pbr = { path = "vendor/bevy/crates/bevy_pbr" }
+bevy_picking = { path = "vendor/bevy/crates/bevy_picking" }
+bevy_ptr = { path = "vendor/bevy/crates/bevy_ptr" }
+bevy_reflect = { path = "vendor/bevy/crates/bevy_reflect" }
+bevy_remote = { path = "vendor/bevy/crates/bevy_remote" }
+bevy_render = { path = "vendor/bevy/crates/bevy_render" }
+bevy_scene = { path = "vendor/bevy/crates/bevy_scene" }
+bevy_sprite = { path = "vendor/bevy/crates/bevy_sprite" }
+bevy_state = { path = "vendor/bevy/crates/bevy_state" }
+bevy_tasks = { path = "vendor/bevy/crates/bevy_tasks" }
+bevy_text = { path = "vendor/bevy/crates/bevy_text" }
+bevy_time = { path = "vendor/bevy/crates/bevy_time" }
+bevy_transform = { path = "vendor/bevy/crates/bevy_transform" }
+bevy_ui = { path = "vendor/bevy/crates/bevy_ui" }
+bevy_utils = { path = "vendor/bevy/crates/bevy_utils" }
+bevy_window = { path = "vendor/bevy/crates/bevy_window" }
+bevy_winit = { path = "vendor/bevy/crates/bevy_winit" }
+
 [patch.'https://github.com/gehud/bevy_egui']
 bevy_egui = { path = "vendor/bevy_egui" }
+
+[patch.'https://github.com/gehud/transform_gizmo']
+transform-gizmo = { path = "vendor/transform_gizmo/crates/transform-gizmo" }
+transform-gizmo-egui = { path = "vendor/transform_gizmo/crates/transform-gizmo-egui" }
+transform-gizmo-bevy = { path = "vendor/transform_gizmo/crates/transform-gizmo-bevy" }
+
+[patch.'https://github.com/gehud/bevy_inspector_egui.git']
+bevy-inspector-egui = { path = "vendor/bevy_inspector_egui/crates/bevy-inspector-egui" }

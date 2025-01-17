@@ -8,12 +8,11 @@ path = "src/main.rs"
 name = "BevyEditor"
 
 [dependencies]
-bevy = { version = "0.15", features = ["serialize"] }
-
-bevy_egui = { git = "https://github.com/gehud/bevy_egui.git" }
-egui_dock = { version = "0.14", features = ["serde"] }
-transform-gizmo-egui = "0.4"
-bevy-inspector-egui = "0.28"
+bevy = { git = "https://github.com/gehud/bevy.git", branch = "bevy_editor", features = ["serialize"] }
+bevy_egui = { git = "https://github.com/gehud/bevy_egui.git", branch = "bevy_editor" }
+egui_dock = { version = "0.15", features = ["serde"] }
+transform-gizmo-egui = { git = "https://github.com/gehud/transform_gizmo.git" }
+bevy-inspector-egui = { git = "https://github.com/gehud/bevy_inspector_egui.git", branch = "bevy_editor" }
 rfd = "0.15.2"
 
 serde = "1.0"
