@@ -1,7 +1,6 @@
 [submodule "vendor/bevy"]
 	path = vendor/bevy
 	url = https://github.com/gehud/bevy.git
-	branch = bevy_editor
 [submodule "vendor/bevy_egui"]
 	path = vendor/bevy_egui
 	url = https://github.com/gehud/bevy_egui.git

@@ -14,6 +14,34 @@ opt-level = 1
 [profile.dev.package."*"]
 opt-level = 3
 
+# Enable more optimization in the release profile at the cost of compile time.
+[profile.release]
+# Compile the entire crate as one unit.
+# Slows compile times, marginal improvements.
+codegen-units = 1
+# Do a second optimization pass over the entire program, including dependencies.
+# Slows compile times, marginal improvements.
+lto = "thin"
+
+# Optimize for size in the wasm-release profile to reduce load times and bandwidth usage on web.
+[profile.wasm-release]
+# Default to release profile values.
+inherits = "release"
+# Optimize with size in mind (also try "z", sometimes it is better).
+# Slightly slows compile times, great improvements to file size and runtime performance.
+opt-level = "s"
+# Strip all debugging information from the binary to slightly reduce file size.
+strip = "debuginfo"
+
+# Patches
+
+[workspace.lints]
+
+[workspace.dependencies]
+proc-macro2 = { version = "1.0.74", default-features = false }
+quote = { version = "1.0.35", default-features = false }
+syn = { version = "2.0.81", default-features = false }
+
 [patch.'https://github.com/gehud/bevy']
 bevy = { path = "vendor/bevy" }
 bevy_a11y = { path = "vendor/bevy/crates/bevy_a11y" }

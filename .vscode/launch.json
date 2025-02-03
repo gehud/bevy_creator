@@ -5,41 +5,21 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "type": "lldb",
+            "name": "(Windows) Launch",
+            "type": "cppvsdbg",
             "request": "launch",
-            "name": "Debug executable 'BevyEditor'",
-            "cargo": {
-                "args": [
-                    "build",
-                    "--bin=BevyEditor",
-                    "--package=bevy_editor"
-                ],
-                "filter": {
-                    "name": "BevyEditor",
-                    "kind": "bin"
-                }
-            },
+            "program": "${workspaceFolder}/target/debug/BevyEditor.exe",
             "args": [],
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug unit tests in executable 'BevyEditor'",
-            "cargo": {
-                "args": [
-                    "test",
-                    "--no-run",
-                    "--bin=BevyEditor",
-                    "--package=bevy_editor"
-                ],
-                "filter": {
-                    "name": "BevyEditor",
-                    "kind": "bin"
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "%USERPROFILE%/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin;${workspaceFolder}/target/debug/deps;%PATH%"
                 }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}"
+            ],
+            "console": "internalConsole",
+            "preLaunchTask": "rust: cargo build"
         }
     ]
 }
