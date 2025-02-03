@@ -62,9 +62,17 @@
 	path = vendor/thiserror
 	url = https://github.com/gehud/thiserror.git
 	branch = bevy_editor
+[submodule "vendor/tinyvec"]
+	path = vendor/tinyvec
+	url = https://github.com/gehud/tinyvec.git
+	branch = bevy_editor
 [submodule "vendor/transform_gizmo"]
 	path = vendor/transform_gizmo
 	url = https://github.com/gehud/transform_gizmo.git
+	branch = bevy_editor
+[submodule "vendor/unicode_segmentation"]
+	path = vendor/unicode_segmentation
+	url = https://github.com/gehud/unicode-segmentation.git
 	branch = bevy_editor
 [submodule "vendor/winapi"]
 	path = vendor/winapi
@@ -78,9 +86,3 @@
 	path = vendor/zerocopy
 	url = https://github.com/gehud/zerocopy.git
 	branch = bevy_editor
-[submodule "vendor/tinyvec"]
-	path = vendor/tinyvec
-	url = https://github.com/gehud/tinyvec.git
-[submodule "vendor/unicode_segmentation"]
-	path = vendor/unicode_segmentation
-	url = https://github.com/gehud/unicode-segmentation.git

@@ -33,7 +33,7 @@ opt-level = "s"
 # Strip all debugging information from the binary to slightly reduce file size.
 strip = "debuginfo"
 
-# Patches
+# Patching
 
 [workspace.lints]
 
@@ -41,6 +41,26 @@ strip = "debuginfo"
 proc-macro2 = { version = "1.0.74", default-features = false }
 quote = { version = "1.0.35", default-features = false }
 syn = { version = "2.0.81", default-features = false }
+
+[patch.crates-io]
+bitflags = { path = "vendor/bitflags" }
+crossbeam-channel = { path = "vendor/crossbeam/crossbeam-channel" }
+either = { path = "vendor/either" }
+getrandom = { path = "vendor/getrandom" }
+glam = { path = "vendor/glam" }
+lazy_static = { path = "vendor/lazy_static" }
+log = { path = "vendor/log" }
+memchr = { path = "vendor/memchr" }
+pin-project-lite = { path = "vendor/pin_project_lite" }
+raw-window-handle = { path = "vendor/raw_window_handle" }
+regex = { path = "vendor/regex" }
+serde = { path = "vendor/serde/serde" }
+thiserror = { path = "vendor/thiserror" }
+tinyvec = { path = "vendor/tinyvec" }
+unicode-segmentation = { path = "vendor/unicode_segmentation" }
+winapi = { path = "vendor/winapi" }
+windows-result = { path = "vendor/windows/crates/libs/result" }
+zerocopy = { path = "vendor/zerocopy" }
 
 [patch.'https://github.com/gehud/bevy']
 bevy = { path = "vendor/bevy" }
