@@ -11,6 +11,6 @@ Some issues we've seen historically which can cause crates to get rebuilt are:
 
 * Some filesystems exhibit unusual behavior around timestamps.
 
-* A concurrent build process is either deleting artifacts or modifying files.
+* A concurrent build process is either deleting artifacts or modifying files (Antivirus).
 
 * .cargo/config in vendor workspaces.
