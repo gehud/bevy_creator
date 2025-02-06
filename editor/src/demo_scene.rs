@@ -1,4 +1,5 @@
-use bevy::prelude::*;
+use bevy::{asset::RenderAssetUsages, prelude::*, render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages}, window::PrimaryWindow};
+use bevy_egui::EguiContexts;
 
 use crate::{editor::MainCamera, selection::PickSelection, AppState};
 
@@ -13,7 +14,9 @@ impl Plugin for DemoScenePlugin {
 fn setup_scene(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
+    mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    windows: Query<&Window, With<PrimaryWindow>>,
 ) {
     let box_size = 2.0;
     let box_thickness = 0.15;
@@ -125,15 +128,39 @@ fn setup_scene(
             ));
         });
 
+    let window = windows.single();
+
+    let size = Extent3d {
+        width: window.physical_width(),
+        height: window.physical_height(),
+        ..default()
+    };
+
+    // This is the texture that will be rendered to.
+    let mut image = Image::new_fill(
+        size,
+        TextureDimension::D2,
+        &[0, 0, 0, 0],
+        TextureFormat::Rgba8UnormSrgb,
+        RenderAssetUsages::default(),
+    );
+    
+    // You need to set these texture usage flags in order to use the image as a render target
+    image.texture_descriptor.usage =
+        TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST | TextureUsages::RENDER_ATTACHMENT;
+
+    let image_handle = images.add(image);
+
     // camera
     commands.spawn((
         Transform::from_xyz(0.0, box_offset, 4.0)
             .looking_at(Vec3::new(0.0, box_offset, 0.0), Vec3::Y),
+        Camera3d::default(),
         Camera {
-            order: 0,
+            target: image_handle.into(),
+            clear_color: ClearColorConfig::Custom(Color::linear_rgb(0.1, 0.1, 0.1)),
             ..default()
         },
-        Camera3d::default(),
         MainCamera,
     ));
 }

@@ -94,19 +94,8 @@ pub struct EditorState {
 
 impl EditorState {
     fn new() -> Self {
-        let mut state = EditorDockState::new(vec![String::from("Game")]);
-        let tree = state.main_surface_mut();
-        let [game, _inspector] =
-            tree.split_right(NodeIndex::root(), 0.75, vec![String::from("Inspector")]);
-        let [game, _hierarchy] = tree.split_left(game, 0.2, vec![String::from("Hierarchy")]);
-        let [_game, _bottom] = tree.split_below(
-            game,
-            0.8,
-            vec![String::from("Resources"), String::from("Assets")],
-        );
-
         Self {
-            docking: state,
+            docking: default_dock_layout(),
             panels: HashMap::default(),
         }
     }
@@ -135,6 +124,21 @@ impl EditorState {
 
         ctx.request_repaint();
     }
+}
+
+fn default_dock_layout() -> DockState<String> {
+    let mut state = EditorDockState::new(vec![String::from("Game")]);
+    let tree = state.main_surface_mut();
+    let [game, _inspector] =
+        tree.split_right(NodeIndex::root(), 0.75, vec![String::from("Inspector")]);
+    let [game, _hierarchy] = tree.split_left(game, 0.2, vec![String::from("Hierarchy")]);
+    let [_game, _bottom] = tree.split_below(
+        game,
+        0.8,
+        vec![String::from("Resources"), String::from("Assets")],
+    );
+
+    state
 }
 
 #[derive(Resource)]

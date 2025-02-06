@@ -15,7 +15,6 @@ mod projects;
 mod selection;
 mod transform_gizmo_ext;
 mod window_config;
-
 mod panels;
 
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]

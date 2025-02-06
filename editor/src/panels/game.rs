@@ -1,20 +1,31 @@
 use bevy::{
+    asset::Assets,
     ecs::{
         query::With,
-        system::{In, Query, RunSystemOnce},
+        system::{In, Local, Query, Res, ResMut, RunSystemOnce},
         world::{Mut, World},
     },
+    image::Image,
     math::{Quat, UVec2, Vec3},
-    render::camera::{Camera, CameraProjection, Projection, Viewport},
+    render::{
+        camera::{Camera, CameraProjection, Projection, RenderTarget, Viewport},
+        render_resource::{Extent3d, TextureFormat},
+    },
     transform::components::{GlobalTransform, Transform},
     utils::default,
     window::{PrimaryWindow, Window},
 };
 use bevy_egui::{
-    egui::{Rect, Ui},
-    EguiSettings,
+    egui::{
+        epaint::image,
+        load::{BytesLoader, SizedTexture},
+        ColorImage, ImageSource, Rect, TextureHandle, TextureId, TextureOptions, Ui, Vec2,
+    },
+    EguiContexts, EguiSettings,
 };
-use transform_gizmo_egui::{math::Transform as GizmoTransform, GizmoConfig, GizmoOrientation};
+use transform_gizmo_egui::{
+    math::Transform as GizmoTransform, Color32, GizmoConfig, GizmoOrientation,
+};
 
 use crate::{
     editor::{GizmoState, InspectorState, MainCamera},
@@ -30,14 +41,12 @@ impl Panel for GamePanel {
         "Game".into()
     }
 
-    fn clear_background(&self) -> bool {
-        false
-    }
-
     fn draw(&mut self, world: &mut World, ui: &mut Ui) {
         world
-            .run_system_once_with(ui.clip_rect(), set_camera_viewport)
+            .run_system_once_with(ui.min_rect(), set_camera_viewport)
             .unwrap();
+
+        ui.image(world.run_system_once(draw_image).unwrap());
 
         world.resource_scope(|world, mut gizmo_state: Mut<GizmoState>| {
             let transform_entities = {
@@ -123,6 +132,7 @@ impl Panel for GamePanel {
 
 fn set_camera_viewport(
     In(viewport_rect): In<Rect>,
+    mut images: ResMut<Assets<Image>>,
     primary_window: Query<&mut Window, With<PrimaryWindow>>,
     egui_settings: Query<&EguiSettings>,
     mut cameras: Query<&mut Camera, With<MainCamera>>,
@@ -135,10 +145,11 @@ fn set_camera_viewport(
 
     let scale_factor = window.scale_factor() * egui_settings.single().scale_factor;
 
-    let viewport_pos = viewport_rect.left_top().to_vec2() * scale_factor;
+    // let viewport_pos = viewport_rect.left_top().to_vec2() * scale_factor;
     let viewport_size = viewport_rect.size() * scale_factor;
 
-    let physical_position = UVec2::new(viewport_pos.x as u32, viewport_pos.y as u32);
+    // let physical_position = UVec2::new(viewport_pos.x as u32, viewport_pos.y as u32);
+    let physical_position = UVec2::ZERO;
     let physical_size = UVec2::new(viewport_size.x as u32, viewport_size.y as u32);
 
     // The desired viewport rectangle at its offset in "physical pixel space"
@@ -150,10 +161,32 @@ fn set_camera_viewport(
     // Typically this shouldn't happen- but during init and resizing etc. edge cases might occur.
     // Simply do nothing in those cases.
     if rect.x <= window_size.x && rect.y <= window_size.y {
+        if let Some(image_handle) = cam.target.as_image() {
+            let size = Extent3d {
+                width: physical_size.x,
+                height: physical_size.y,
+                ..default()
+            };
+
+            images.get_mut(image_handle).unwrap().resize(size);
+        }
+
         cam.viewport = Some(Viewport {
             physical_position,
             physical_size,
             depth: 0.0..1.0,
         });
     }
+}
+
+fn draw_image(
+    cameras: Query<&Camera, With<MainCamera>>,
+    mut egui_contexts: EguiContexts,
+    mut texture_id: Local<Option<TextureId>>,
+    images: Res<Assets<Image>>
+) -> (TextureId, Vec2) {
+    let image_handle = cameras.single().target.as_image().unwrap();
+    let texture_id = *texture_id.get_or_insert_with(|| egui_contexts.add_image(image_handle.clone_weak()));
+    let size = images.get(image_handle).unwrap().size_f32();
+    (texture_id, Vec2::new(size.x, size.y))
 }
