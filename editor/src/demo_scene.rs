@@ -1,5 +1,7 @@
-use bevy::{asset::RenderAssetUsages, prelude::*, render::render_resource::{Extent3d, TextureDimension, TextureFormat, TextureUsages}, window::PrimaryWindow};
-use bevy_egui::EguiContexts;
+use bevy::{
+    prelude::*,
+    render::render_resource::{TextureDimension, TextureFormat, TextureUsages},
+};
 
 use crate::{editor::MainCamera, selection::PickSelection, AppState};
 
@@ -16,7 +18,6 @@ fn setup_scene(
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    windows: Query<&Window, With<PrimaryWindow>>,
 ) {
     let box_size = 2.0;
     let box_thickness = 0.15;
@@ -128,23 +129,15 @@ fn setup_scene(
             ));
         });
 
-    let window = windows.single();
-
-    let size = Extent3d {
-        width: window.physical_width(),
-        height: window.physical_height(),
-        ..default()
-    };
-
     // This is the texture that will be rendered to.
     let mut image = Image::new_fill(
-        size,
+        default(),
         TextureDimension::D2,
         &[0, 0, 0, 0],
         TextureFormat::Rgba8UnormSrgb,
-        RenderAssetUsages::default(),
+        default(),
     );
-    
+
     // You need to set these texture usage flags in order to use the image as a render target
     image.texture_descriptor.usage =
         TextureUsages::TEXTURE_BINDING | TextureUsages::COPY_DST | TextureUsages::RENDER_ATTACHMENT;

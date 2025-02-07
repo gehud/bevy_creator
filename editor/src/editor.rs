@@ -177,12 +177,10 @@ fn handle_selection(
     mut select_events: EventReader<Pointer<Select>>,
 ) {
     for e in deselect_events.read() {
-        bevy::log::info!("Deselect {}", e.target);
         inspector_state.selected_entities.remove(e.target);
     }
 
     for e in select_events.read() {
-        bevy::log::info!("Select {}", e.target);
         inspector_state
             .selected_entities
             .select_maybe_add(e.target, true);
