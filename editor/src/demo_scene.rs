@@ -3,12 +3,17 @@ use bevy::{
     render::render_resource::{TextureDimension, TextureFormat, TextureUsages},
 };
 
-use crate::{editor::MainCamera, selection::PickSelection, AppState};
+use crate::{editor::MainCamera, selection::PickSelection, AppState, ProjectApp};
 
 pub struct DemoScenePlugin;
 
 impl Plugin for DemoScenePlugin {
     fn build(&self, app: &mut App) {
+        let mut project_app = SubApp::new();
+        project_app.add_systems(OnEnter(AppState::Editor), || {
+            bevy::log::info!("Project App");
+        });
+        app.insert_sub_app(ProjectApp, project_app);
         app.add_systems(OnEnter(AppState::Editor), setup_scene);
     }
 }

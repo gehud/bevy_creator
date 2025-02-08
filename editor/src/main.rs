@@ -1,4 +1,4 @@
-use bevy::{picking::PickSet, prelude::*, window::PresentMode};
+use bevy::{app::AppLabel, picking::PickSet, prelude::*, window::PresentMode};
 use bevy_egui::{EguiPlugin, EguiSet};
 use editor::EditorPlugin;
 use egui_picking::EguiPickingPlugin;
@@ -28,6 +28,9 @@ enum AppState {
 enum AppSet {
     Egui,
 }
+
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, AppLabel)]
+pub struct ProjectApp;
 
 fn main() {
     App::new()
