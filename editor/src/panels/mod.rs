@@ -3,4 +3,4 @@ pub mod explorer;
 pub mod hierarchy;
 pub mod inspector;
 pub mod resources;
-pub mod viewport;
+pub mod scene;

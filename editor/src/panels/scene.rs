@@ -30,13 +30,13 @@ use crate::{
 };
 
 #[derive(Default)]
-pub struct ViewportPanel {
+pub struct ScenePanel {
     last_viewport_size: EguiVec2,
 }
 
-impl Panel for ViewportPanel {
+impl Panel for ScenePanel {
     fn name(&self) -> String {
-        "Viewport".into()
+        "Scene".into()
     }
 
     fn draw(&mut self, world: &mut World, ui: &mut Ui) {

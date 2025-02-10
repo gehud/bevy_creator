@@ -13,7 +13,7 @@ use crate::demo_scene::DemoScenePlugin;
 use crate::panel::Panel;
 use crate::panels::assets::AssetsPanel;
 use crate::panels::explorer::ExplorerPanel;
-use crate::panels::viewport::ViewportPanel;
+use crate::panels::scene::ScenePanel;
 use crate::panels::hierarchy::HierarchyPanel;
 use crate::panels::inspector::InspectorPanel;
 use crate::panels::resources::ResourcesPanel;
@@ -63,7 +63,7 @@ fn init_panels(mut state: ResMut<EditorState>) {
     state.init_panel::<HierarchyPanel>();
     state.init_panel::<InspectorPanel>();
     state.init_panel::<ResourcesPanel>();
-    state.init_panel::<ViewportPanel>();
+    state.init_panel::<ScenePanel>();
 }
 
 fn setup_window(mut windows: Query<&mut Window, With<PrimaryWindow>>) {
@@ -127,7 +127,7 @@ impl EditorState {
 }
 
 fn default_dock_layout() -> DockState<String> {
-    let mut state = EditorDockState::new(vec![String::from("Viewport")]);
+    let mut state = EditorDockState::new(vec![String::from("Scene")]);
     let tree = state.main_surface_mut();
     let [game, _inspector] =
         tree.split_right(NodeIndex::root(), 0.75, vec![String::from("Inspector")]);
