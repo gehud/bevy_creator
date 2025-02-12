@@ -8,18 +8,18 @@ path = "src/main.rs"
 name = "BevyEditor"
 
 [dependencies]
-bevy = { git = "https://github.com/gehud/bevy.git", branch = "bevy_editor", features = ["serialize"] }
-bevy_egui = { git = "https://github.com/gehud/bevy_egui.git", branch = "bevy_editor" }
-egui_dock = { version = "0.14", features = ["serde"] }
-transform-gizmo-egui = { git = "https://github.com/gehud/transform_gizmo.git" }
-bevy-inspector-egui = { git = "https://github.com/gehud/bevy_inspector_egui.git", branch = "bevy_editor" }
+bevy = { version = "0.15.2", features = ["serialize"] }
+bevy_egui = "0.32.0"
+egui_dock = { version = "0.15.0", features = ["serde"] }
+transform-gizmo-egui = "0.4"
+bevy-inspector-egui = "0.29.1"
 rfd = "0.15.2"
 image = "0.25"
 winit = "0.30"
 
 serde = "1.0"
 serde_json = "1.0"
-directories = "5.0"
+directories = "6.0.0"
 
 [workspace]
 resolver = "2"
@@ -51,88 +51,5 @@ opt-level = "s"
 # Strip all debugging information from the binary to slightly reduce file size.
 strip = "debuginfo"
 
-# Patching
-
-[workspace.lints]
-
-[workspace.dependencies]
-proc-macro2 = { version = "1.0.74", default-features = false }
-quote = { version = "1.0.35", default-features = false }
-syn = { version = "2.0.81", default-features = false }
-
 [patch.crates-io]
-bitflags = { path = "vendor/bitflags" }
-crossbeam-channel = { path = "vendor/crossbeam/crossbeam-channel" }
-either = { path = "vendor/either" }
-getrandom = { path = "vendor/getrandom" }
-glam = { path = "vendor/glam" }
-lazy_static = { path = "vendor/lazy_static" }
-log = { path = "vendor/log" }
-memchr = { path = "vendor/memchr" }
-pin-project-lite = { path = "vendor/pin_project_lite" }
-raw-window-handle = { path = "vendor/raw_window_handle" }
-regex = { path = "vendor/regex" }
-serde = { path = "vendor/serde/serde" }
-thiserror = { path = "vendor/thiserror" }
-tinyvec = { path = "vendor/tinyvec" }
-unicode-segmentation = { path = "vendor/unicode_segmentation" }
-winapi = { path = "vendor/winapi" }
-windows-result = { path = "vendor/windows/crates/libs/result" }
-zerocopy = { path = "vendor/zerocopy" }
-
-[patch.'https://github.com/gehud/bevy']
-bevy = { path = "vendor/bevy" }
-bevy_a11y = { path = "vendor/bevy/crates/bevy_a11y" }
-bevy_animation = { path = "vendor/bevy/crates/bevy_animation" }
-bevy_app = { path = "vendor/bevy/crates/bevy_app" }
-bevy_asset = { path = "vendor/bevy/crates/bevy_asset" }
-bevy_audio = { path = "vendor/bevy/crates/bevy_audio" }
-bevy_color = { path = "vendor/bevy/crates/bevy_color" }
-bevy_core = { path = "vendor/bevy/crates/bevy_core" }
-bevy_core_pipeline = { path = "vendor/bevy/crates/bevy_core_pipeline" }
-bevy_derive = { path = "vendor/bevy/crates/bevy_derive" }
-bevy_dev_tools = { path = "vendor/bevy/crates/bevy_dev_tools" }
-bevy_diagnostic = { path = "vendor/bevy/crates/bevy_diagnostic" }
-bevy_dylib = { path = "vendor/bevy/crates/bevy_dylib" }
-bevy_ecs = { path = "vendor/bevy/crates/bevy_ecs" }
-bevy_encase_derive = { path = "vendor/bevy/crates/bevy_encase_derive" }
-bevy_gilrs = { path = "vendor/bevy/crates/bevy_gilrs" }
-bevy_gizmos = { path = "vendor/bevy/crates/bevy_gizmos" }
-bevy_gltf = { path = "vendor/bevy/crates/bevy_gltf" }
-bevy_hierarchy = { path = "vendor/bevy/crates/bevy_hierarchy" }
-bevy_image = { path = "vendor/bevy/crates/bevy_image" }
-bevy_input = { path = "vendor/bevy/crates/bevy_input" }
-bevy_internal = { path = "vendor/bevy/crates/bevy_internal" }
-bevy_log = { path = "vendor/bevy/crates/bevy_log" }
-bevy_macro_utils = { path = "vendor/bevy/crates/bevy_macro_utils" }
-bevy_math = { path = "vendor/bevy/crates/bevy_math" }
-bevy_mesh = { path = "vendor/bevy/crates/bevy_mesh" }
-bevy_mikktspace = { path = "vendor/bevy/crates/bevy_mikktspace" }
-bevy_pbr = { path = "vendor/bevy/crates/bevy_pbr" }
-bevy_picking = { path = "vendor/bevy/crates/bevy_picking" }
-bevy_ptr = { path = "vendor/bevy/crates/bevy_ptr" }
-bevy_reflect = { path = "vendor/bevy/crates/bevy_reflect" }
-bevy_remote = { path = "vendor/bevy/crates/bevy_remote" }
-bevy_render = { path = "vendor/bevy/crates/bevy_render" }
-bevy_scene = { path = "vendor/bevy/crates/bevy_scene" }
-bevy_sprite = { path = "vendor/bevy/crates/bevy_sprite" }
-bevy_state = { path = "vendor/bevy/crates/bevy_state" }
-bevy_tasks = { path = "vendor/bevy/crates/bevy_tasks" }
-bevy_text = { path = "vendor/bevy/crates/bevy_text" }
-bevy_time = { path = "vendor/bevy/crates/bevy_time" }
-bevy_transform = { path = "vendor/bevy/crates/bevy_transform" }
-bevy_ui = { path = "vendor/bevy/crates/bevy_ui" }
-bevy_utils = { path = "vendor/bevy/crates/bevy_utils" }
-bevy_window = { path = "vendor/bevy/crates/bevy_window" }
-bevy_winit = { path = "vendor/bevy/crates/bevy_winit" }
-
-[patch.'https://github.com/gehud/bevy_egui']
-bevy_egui = { path = "vendor/bevy_egui" }
-
-[patch.'https://github.com/gehud/transform_gizmo']
-transform-gizmo = { path = "vendor/transform_gizmo/crates/transform-gizmo" }
-transform-gizmo-egui = { path = "vendor/transform_gizmo/crates/transform-gizmo-egui" }
-transform-gizmo-bevy = { path = "vendor/transform_gizmo/crates/transform-gizmo-bevy" }
-
-[patch.'https://github.com/gehud/bevy_inspector_egui.git']
-bevy-inspector-egui = { path = "vendor/bevy_inspector_egui/crates/bevy-inspector-egui" }
+transform-gizmo-egui = { git = "https://github.com/gehud/transform-gizmo.git" }

@@ -1,5 +1,5 @@
-use bevy::{app::AppLabel, picking::PickSet, prelude::*, window::PresentMode};
-use bevy_egui::{EguiPlugin, EguiSet};
+use bevy::{picking::PickSet, prelude::*, window::PresentMode};
+use bevy_egui::{EguiPlugin, EguiPreUpdateSet};
 use editor::EditorPlugin;
 use egui_picking::EguiPickingPlugin;
 use projects::ProjectsPlugin;
@@ -45,7 +45,7 @@ fn main() {
         .configure_sets(
             PreUpdate,
             AppSet::Egui
-                .after(EguiSet::BeginPass)
+                .after(EguiPreUpdateSet::BeginPass)
                 .before(PickSet::Backend),
         )
         .add_plugins(EguiPlugin)

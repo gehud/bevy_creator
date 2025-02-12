@@ -63,14 +63,12 @@ fn setup_window(
     window.position = WindowPosition::Centered(MonitorSelection::Current);
 
     let (icon_rgba, icon_width, icon_height) = {
-        let image = ImageReader::new(Cursor::new(include_bytes!(
-            "../vendor/bevy/assets/branding/icon.png"
-        )))
-        .with_guessed_format()
-        .expect("Unexpected image format")
-        .decode()
-        .expect("Failed to decode image")
-        .into_rgba8();
+        let image = ImageReader::new(Cursor::new(include_bytes!("../assets/icon.png")))
+            .with_guessed_format()
+            .expect("Unexpected image format")
+            .decode()
+            .expect("Failed to decode image")
+            .into_rgba8();
 
         let (width, height) = image.dimensions();
         let rgba = image.into_raw();

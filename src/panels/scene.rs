@@ -19,7 +19,7 @@ use bevy::{
 };
 use bevy_egui::{
     egui::{Rect, TextureId, Ui, Vec2 as EguiVec2},
-    EguiContexts, EguiSettings,
+    EguiContexts, EguiContextSettings,
 };
 use transform_gizmo_egui::{math::Transform as GizmoTransform, GizmoConfig, GizmoOrientation};
 
@@ -145,7 +145,7 @@ fn update_viewport(
     In(viewport_rect): In<Rect>,
     mut images: ResMut<Assets<Image>>,
     primary_window: Query<&mut Window, With<PrimaryWindow>>,
-    egui_settings: Query<&EguiSettings>,
+    egui_settings: Query<&EguiContextSettings>,
     mut cameras: Query<&mut Camera, With<MainCamera>>,
 ) {
     let cam = cameras.single_mut();

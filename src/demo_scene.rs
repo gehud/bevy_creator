@@ -1,5 +1,4 @@
 use bevy::{
-    ecs::system::SystemState,
     prelude::*,
     render::render_resource::{TextureDimension, TextureFormat, TextureUsages},
 };
