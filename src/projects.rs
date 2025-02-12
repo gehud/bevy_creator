@@ -19,7 +19,7 @@ use bevy_egui::{
 use image::ImageReader;
 use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
-use winit::window::{Icon, WindowId};
+use winit::window::Icon;
 
 use crate::{
     config::{read_json_config, save_json_config},
@@ -64,7 +64,7 @@ fn setup_window(
 
     let (icon_rgba, icon_width, icon_height) = {
         let image = ImageReader::new(Cursor::new(include_bytes!(
-            "../../vendor/bevy/assets/branding/icon.png"
+            "../vendor/bevy/assets/branding/icon.png"
         )))
         .with_guessed_format()
         .expect("Unexpected image format")
