@@ -8,15 +8,17 @@ use bevy::input::ButtonInput;
 use bevy::prelude::{in_state, EventReader, KeyCode, OnEnter, Pointer, Query, Res, With, World};
 use bevy::prelude::{IntoSystemConfigs, ResMut, Resource};
 use bevy::utils::hashbrown::HashMap;
+use rfd::FileDialog;
 
 use crate::demo_scene::DemoScenePlugin;
+use crate::dock::{EditorDockState, PanelViewer, StandardEditorDockStateTemplate};
 use crate::panel::Panel;
 use crate::panels::assets::AssetsPanel;
 use crate::panels::explorer::ExplorerPanel;
-use crate::panels::scene::ScenePanel;
 use crate::panels::hierarchy::HierarchyPanel;
 use crate::panels::inspector::InspectorPanel;
 use crate::panels::resources::ResourcesPanel;
+use crate::panels::scene::ScenePanel;
 use crate::window_config::WindowConfigPlugin;
 use crate::{AppSet, AppState};
 use bevy::window::{PrimaryWindow, Window};
@@ -25,14 +27,26 @@ use bevy_egui::egui::{Id, TopBottomPanel};
 use bevy_egui::{egui, EguiContext};
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
-use egui_dock::{DockArea, DockState, NodeIndex};
+use egui_dock::DockArea;
 use transform_gizmo_egui::{EnumSet, Gizmo, GizmoMode};
 
 use crate::egui_config::EguiConfigPlugin;
 use crate::selection::{Deselect, Select};
 
-pub type EditorTab = String;
-pub type EditorDockState = DockState<EditorTab>;
+#[derive(Component)]
+pub struct MainCamera;
+
+#[derive(Eq, PartialEq)]
+pub enum InspectorSelection {
+    Entities,
+    Resource(TypeId, String),
+    Asset(TypeId, String, UntypedAssetId),
+}
+
+#[derive(Default, Resource)]
+pub struct SelectedProject {
+    pub dir: Option<PathBuf>,
+}
 
 pub struct EditorPlugin;
 
@@ -57,35 +71,6 @@ impl Plugin for EditorPlugin {
     }
 }
 
-fn init_panels(mut state: ResMut<EditorState>) {
-    state.init_panel::<AssetsPanel>();
-    state.init_panel::<ExplorerPanel>();
-    state.init_panel::<HierarchyPanel>();
-    state.init_panel::<InspectorPanel>();
-    state.init_panel::<ResourcesPanel>();
-    state.init_panel::<ScenePanel>();
-}
-
-fn setup_window(mut windows: Query<&mut Window, With<PrimaryWindow>>) {
-    let mut window = windows.single_mut();
-    window.title = "BevyEditor".into();
-}
-
-#[derive(Component)]
-pub struct MainCamera;
-
-#[derive(Eq, PartialEq)]
-pub enum InspectorSelection {
-    Entities,
-    Resource(TypeId, String),
-    Asset(TypeId, String, UntypedAssetId),
-}
-
-#[derive(Default, Resource)]
-pub struct SelectedProject {
-    pub dir: Option<PathBuf>,
-}
-
 #[derive(Resource)]
 pub struct EditorState {
     pub docking: EditorDockState,
@@ -95,7 +80,7 @@ pub struct EditorState {
 impl EditorState {
     fn new() -> Self {
         Self {
-            docking: default_dock_layout(),
+            docking: EditorDockState::standard(),
             panels: HashMap::default(),
         }
     }
@@ -110,35 +95,20 @@ impl EditorState {
 
     fn ui(&mut self, world: &mut World, ctx: &egui::Context) {
         TopBottomPanel::new(TopBottomSide::Top, Id::new("Menu")).show(ctx, |ui| {
-            draw_menu(self, ui);
+            draw_menu(self, world, ui);
         });
 
-        let mut tab_viewer = TabViewer {
+        let mut panel_viewer = PanelViewer {
             world,
             panels: &mut self.panels,
         };
 
         DockArea::new(&mut self.docking)
             .style(egui_dock::Style::from_egui(ctx.style().as_ref()))
-            .show(ctx, &mut tab_viewer);
+            .show(ctx, &mut panel_viewer);
 
         ctx.request_repaint();
     }
-}
-
-fn default_dock_layout() -> DockState<String> {
-    let mut state = EditorDockState::new(vec![String::from("Scene")]);
-    let tree = state.main_surface_mut();
-    let [game, _inspector] =
-        tree.split_right(NodeIndex::root(), 0.75, vec![String::from("Inspector")]);
-    let [game, _hierarchy] = tree.split_left(game, 0.2, vec![String::from("Hierarchy")]);
-    let [_game, _bottom] = tree.split_below(
-        game,
-        0.8,
-        vec![String::from("Resources"), String::from("Assets")],
-    );
-
-    state
 }
 
 #[derive(Resource)]
@@ -169,6 +139,20 @@ impl GizmoState {
             gizmo_modes: GizmoMode::all(),
         }
     }
+}
+
+fn init_panels(mut state: ResMut<EditorState>) {
+    state.init_panel::<AssetsPanel>();
+    state.init_panel::<ExplorerPanel>();
+    state.init_panel::<HierarchyPanel>();
+    state.init_panel::<InspectorPanel>();
+    state.init_panel::<ResourcesPanel>();
+    state.init_panel::<ScenePanel>();
+}
+
+fn setup_window(mut windows: Query<&mut Window, With<PrimaryWindow>>) {
+    let mut window = windows.single_mut();
+    window.title = "BevyEditor".into();
 }
 
 fn handle_selection(
@@ -216,39 +200,33 @@ fn show_ui(world: &mut World) {
     });
 }
 
-struct TabViewer<'a> {
-    world: &'a mut World,
-    panels: &'a mut HashMap<String, Box<dyn Panel>>,
+fn save_scene(world: &mut World) {
+    let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
+    
+    let path = FileDialog::new()
+        .add_filter("Bevy Scene", &["scn"])
+        .set_directory(project_dir)
+        .save_file();
+
+    
 }
 
-impl egui_dock::TabViewer for TabViewer<'_> {
-    type Tab = EditorTab;
-
-    fn ui(&mut self, ui: &mut egui_dock::egui::Ui, window: &mut Self::Tab) {
-        if let Some(panel) = self.panels.get_mut(window) {
-            panel.draw(self.world, ui);
-        }
-    }
-
-    fn title(&mut self, window: &mut Self::Tab) -> egui_dock::egui::WidgetText {
-        window.as_str().into()
-    }
-
-    fn clear_background(&self, window: &Self::Tab) -> bool {
-        match self.panels.get(window) {
-            Some(panel) => panel.clear_background(),
-            None => true,
-        }
-    }
-}
-
-fn draw_menu(editor_state: &mut EditorState, ui: &mut egui::Ui) {
-    ui.menu_button("View", |ui| {
-        for name in editor_state.panels.keys() {
-            if ui.button(name).clicked() {
-                editor_state.docking.add_window(vec![name.clone()]);
+fn draw_menu(editor_state: &mut EditorState, world: &mut World, ui: &mut egui::Ui) {
+    ui.horizontal(|ui| {
+        ui.menu_button("File", |ui| {
+            if ui.button("Save As...").clicked() {
+                save_scene(world);
                 ui.close_menu();
             }
-        }
+        });
+
+        ui.menu_button("View", |ui| {
+            for name in editor_state.panels.keys() {
+                if ui.button(name).clicked() {
+                    editor_state.docking.add_window(vec![name.clone()]);
+                    ui.close_menu();
+                }
+            }
+        });
     });
 }

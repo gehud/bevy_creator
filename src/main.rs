@@ -16,6 +16,7 @@ mod selection;
 mod transform_gizmo_ext;
 mod window_config;
 mod panels;
+mod dock;
 
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 enum AppState {
@@ -28,9 +29,6 @@ enum AppState {
 enum AppSet {
     Egui,
 }
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, AppLabel)]
-pub struct ProjectApp;
 
 fn main() {
     App::new()

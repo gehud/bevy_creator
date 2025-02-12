@@ -1,9 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    config::{read_json_config, save_json_config},
-    editor::{EditorDockState, EditorState},
-    AppState,
+    config::{read_json_config, save_json_config}, dock::EditorDockState, editor::EditorState, AppState
 };
 
 const CONFIG_NAME: &str = "egui";
