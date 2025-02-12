@@ -1,11 +1,13 @@
 use std::{
     fs,
+    io::Cursor,
     path::{Path, PathBuf},
 };
 
 use bevy::{
     prelude::*,
     window::{PrimaryWindow, WindowCloseRequested},
+    winit::WinitWindows,
 };
 use bevy_egui::{
     egui::{
@@ -14,8 +16,10 @@ use bevy_egui::{
     },
     EguiContexts,
 };
+use image::ImageReader;
 use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
+use winit::window::{Icon, WindowId};
 
 use crate::{
     config::{read_json_config, save_json_config},
@@ -49,11 +53,35 @@ impl Plugin for ProjectsPlugin {
     }
 }
 
-fn setup_window(mut windows: Query<&mut Window, With<PrimaryWindow>>) {
+fn setup_window(
+    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+    winit: NonSend<WinitWindows>,
+) {
     let mut window = windows.single_mut();
     window.title = "BevyEditor - Projects".into();
     window.resolution = (640., 360.).into();
     window.position = WindowPosition::Centered(MonitorSelection::Current);
+
+    let (icon_rgba, icon_width, icon_height) = {
+        let image = ImageReader::new(Cursor::new(include_bytes!(
+            "../../vendor/bevy/assets/branding/icon.png"
+        )))
+        .with_guessed_format()
+        .expect("Unexpected image format")
+        .decode()
+        .expect("Failed to decode image")
+        .into_rgba8();
+
+        let (width, height) = image.dimensions();
+        let rgba = image.into_raw();
+        (rgba, width, height)
+    };
+
+    let icon = Icon::from_rgba(icon_rgba, icon_width, icon_height).unwrap();
+
+    for window in winit.windows.values() {
+        window.set_window_icon(Some(icon.clone()));
+    }
 }
 
 fn load_config(mut state: ResMut<ProjectsState>) {
