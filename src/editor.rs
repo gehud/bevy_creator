@@ -94,7 +94,7 @@ impl EditorState {
     }
 
     fn ui(&mut self, world: &mut World, ctx: &egui::Context) {
-        TopBottomPanel::new(TopBottomSide::Top, Id::new("Menu")).show(ctx, |ui| {
+        TopBottomPanel::new(TopBottomSide::Top, Id::new("menu")).show(ctx, |ui| {
             draw_menu(self, world, ui);
         });
 
