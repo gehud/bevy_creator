@@ -1,19 +1,11 @@
-use bevy::{
-    ecs::{
-        entity::Entity,
-        query::With,
-        reflect::AppTypeRegistry,
-        world::{Mut, World},
-    },
-    hierarchy::Parent,
-    scene::SceneInstance,
-    utils::default,
+use bevy_ecs::{
+    query::With,
+    reflect::AppTypeRegistry,
+    world::{Mut, World},
 };
 use bevy_egui::egui::Ui;
-use bevy_inspector_egui::bevy_inspector::{
-    hierarchy::Hierarchy,
-    EntityFilter,
-};
+use bevy_inspector_egui::bevy_inspector::hierarchy::Hierarchy;
+use bevy_scene::SceneInstance;
 
 use crate::{
     editor::{InspectorSelection, InspectorState},

@@ -5,12 +5,24 @@
 
 use std::collections::HashSet;
 
-use bevy::{
-    picking::{
-        input::spawn_mouse_pointer, pointer::{PointerId, PointerInput, PointerLocation}, PickSet
-    },
-    prelude::*,
+use bevy_app::{App, Plugin, PreUpdate, Startup};
+use bevy_ecs::{
+    component::Component,
+    entity::Entity,
+    event::{EventReader, EventWriter},
+    query::{With, Without},
+    reflect::{ReflectComponent, ReflectResource},
+    schedule::IntoSystemConfigs,
+    system::{Commands, Query, Res, Resource},
 };
+use bevy_input::{keyboard::KeyCode, ButtonInput};
+use bevy_picking::{
+    events::{Click, Down, Pointer},
+    input::spawn_mouse_pointer,
+    pointer::{PointerButton, PointerId, PointerInput, PointerLocation},
+    PickSet,
+};
+use bevy_reflect::{prelude::ReflectDefault, Reflect};
 
 /// Runtime settings for the [`SelectionPlugin`] plugin.
 #[derive(Debug, Resource, Reflect)]
@@ -107,10 +119,12 @@ pub struct Deselect;
 
 pub fn add_required_components(
     pointers: Query<Entity, (With<PointerId>, Without<PointerMultiselect>)>,
-    mut commands: Commands
+    mut commands: Commands,
 ) {
     for entity in pointers.iter() {
-        commands.entity(entity).insert(PointerMultiselect::default());
+        commands
+            .entity(entity)
+            .insert(PointerMultiselect::default());
     }
 }
 
@@ -165,7 +179,7 @@ pub fn send_selection_events(
             .unwrap_or(false);
 
         let target_can_deselect = no_deselect.get(*target).is_err();
-        
+
         // Deselect everything
         if !multiselect && target_can_deselect {
             for (entity, selection) in selectables.iter() {

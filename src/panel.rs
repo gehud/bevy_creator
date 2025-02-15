@@ -1,4 +1,4 @@
-use bevy::prelude::World;
+use bevy_ecs::world::World;
 use bevy_egui::egui::Ui;
 
 pub trait Panel: Send + Sync {
@@ -6,9 +6,11 @@ pub trait Panel: Send + Sync {
 
     #[allow(unused)]
     fn setup(&mut self, world: &mut World) {}
-    
+
     #[allow(unused)]
     fn ui(&mut self, world: &mut World, ui: &mut Ui) {}
-    
-    fn clear_background(&self) -> bool { true }
+
+    fn clear_background(&self) -> bool {
+        true
+    }
 }

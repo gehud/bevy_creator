@@ -1,7 +1,17 @@
-use bevy::prelude::*;
+use bevy_app::{App, Plugin, PreUpdate};
+use bevy_ecs::{
+    event::EventReader,
+    schedule::IntoSystemConfigs,
+    system::{Res, ResMut},
+};
+use bevy_state::{condition::in_state, state::OnEnter};
+use bevy_window::WindowCloseRequested;
 
 use crate::{
-    config::{read_json_config, save_json_config}, dock::EditorDockState, editor::EditorState, AppState
+    config::{read_json_config, save_json_config},
+    dock::EditorDockState,
+    editor::EditorState,
+    AppState,
 };
 
 const CONFIG_NAME: &str = "egui";
@@ -20,16 +30,16 @@ impl Plugin for EguiConfigPlugin {
 
 fn restore_panel_state(mut editor_state: ResMut<EditorState>) {
     if let Some(state) = load_panel_config() {
-        bevy::log::info!("Loaded \"egui\" config file");
+        bevy_log::info!("Loaded \"egui\" config file");
         editor_state.docking = state;
     } else {
-        bevy::log::info!("Could not load \"egui\" config file. Setting to default");
+        bevy_log::info!("Could not load \"egui\" config file. Setting to default");
     }
 }
 
 fn on_before_close(
     editor_state: Res<EditorState>,
-    mut ev_window_will_close: EventReader<bevy::window::WindowCloseRequested>,
+    mut ev_window_will_close: EventReader<WindowCloseRequested>,
 ) {
     for _ in ev_window_will_close.read() {
         save_panel_config(&editor_state.docking);

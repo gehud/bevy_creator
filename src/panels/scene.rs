@@ -1,26 +1,24 @@
-use bevy::{
-    asset::{Assets, Handle},
-    ecs::{
-        event::EventWriter,
-        query::With,
-        system::{In, Local, Query, Res, ResMut, RunSystemOnce},
-        world::{Mut, World},
-    },
-    image::Image,
-    math::{Quat, UVec2, Vec2, Vec3},
-    picking::pointer::{Location, PointerId, PointerInput},
-    render::{
-        camera::{Camera, CameraProjection, NormalizedRenderTarget, Projection},
-        render_resource::Extent3d,
-    },
-    transform::components::{GlobalTransform, Transform},
-    utils::default,
-    window::{PrimaryWindow, Window},
+use bevy_asset::{Assets, Handle};
+use bevy_ecs::{
+    event::EventWriter,
+    query::With,
+    system::{In, Local, Query, Res, ResMut, RunSystemOnce},
+    world::{Mut, World},
 };
 use bevy_egui::{
     egui::{Rect, TextureId, Ui, Vec2 as EguiVec2},
-    EguiContexts, EguiContextSettings,
+    EguiContextSettings, EguiContexts,
 };
+use bevy_image::Image;
+use bevy_math::{Quat, UVec2, Vec2, Vec3};
+use bevy_picking::pointer::{Location, PointerAction, PointerId, PointerInput};
+use bevy_render::{
+    camera::{Camera, CameraProjection, NormalizedRenderTarget, Projection},
+    render_resource::Extent3d,
+};
+use bevy_transform::components::{GlobalTransform, Transform};
+use bevy_utils::default;
+use bevy_window::{PrimaryWindow, Window};
 use transform_gizmo_egui::{math::Transform as GizmoTransform, GizmoConfig, GizmoOrientation};
 
 use crate::{
@@ -212,6 +210,6 @@ fn send_mouse_move(
             target: NormalizedRenderTarget::Image(image_handle),
             position: Vec2::new(pos.x, pos.y),
         },
-        action: bevy::picking::pointer::PointerAction::Moved { delta: Vec2::ZERO },
+        action: PointerAction::Moved { delta: Vec2::ZERO },
     });
 }

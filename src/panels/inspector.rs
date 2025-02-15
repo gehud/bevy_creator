@@ -1,14 +1,8 @@
-use std::any::TypeId;
-
-use bevy::{
-    ecs::{
-        component::Component,
-        reflect::{AppTypeRegistry, ReflectComponent},
-        world::{Mut, World},
-    },
-    utils::HashSet,
+use bevy_ecs::{
+    reflect::{AppTypeRegistry, ReflectComponent},
+    world::{Mut, World},
 };
-use bevy_egui::egui::{Align, Direction, Layout, ScrollArea, TextEdit, Ui};
+use bevy_egui::egui::{Align, Layout, ScrollArea, Ui};
 use bevy_inspector_egui::bevy_inspector::{
     self, ui_for_entities_shared_components, ui_for_entity_with_children,
 };

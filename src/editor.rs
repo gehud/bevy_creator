@@ -1,14 +1,21 @@
 use std::any::TypeId;
 use std::path::PathBuf;
 
-use bevy::app::{App, Plugin, PreUpdate};
-use bevy::asset::UntypedAssetId;
-use bevy::ecs::component::Component;
-use bevy::input::ButtonInput;
-use bevy::prelude::{in_state, EventReader, KeyCode, OnEnter, Pointer, Query, Res, With, World};
-use bevy::prelude::{IntoSystemConfigs, ResMut, Resource};
-use bevy::utils::default;
-use bevy::utils::hashbrown::HashMap;
+use bevy_app::{App, Plugin, PreUpdate};
+use bevy_asset::UntypedAssetId;
+use bevy_ecs::component::Component;
+use bevy_ecs::event::EventReader;
+use bevy_ecs::query::With;
+use bevy_ecs::schedule::IntoSystemConfigs;
+use bevy_ecs::system::{Query, Res, ResMut, Resource};
+use bevy_ecs::world::World;
+use bevy_input::keyboard::KeyCode;
+use bevy_input::ButtonInput;
+use bevy_picking::events::Pointer;
+use bevy_state::condition::in_state;
+use bevy_state::state::OnEnter;
+use bevy_utils::default;
+use bevy_utils::hashbrown::HashMap;
 use rfd::FileDialog;
 
 use crate::demo_scene::DemoScenePlugin;
@@ -22,12 +29,12 @@ use crate::panels::resources::ResourcesPanel;
 use crate::panels::scene::ScenePanel;
 use crate::window_config::WindowConfigPlugin;
 use crate::{AppSet, AppState};
-use bevy::window::{PrimaryWindow, Window};
 use bevy_egui::egui::panel::TopBottomSide;
 use bevy_egui::egui::{Id, TopBottomPanel};
 use bevy_egui::{egui, EguiContext};
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
+use bevy_window::{PrimaryWindow, Window};
 use egui_dock::DockArea;
 use transform_gizmo_egui::{EnumSet, Gizmo, GizmoMode};
 
@@ -124,7 +131,7 @@ impl InspectorState {
         Self {
             selection: InspectorSelection::Entities,
             selected_entities: SelectedEntities::default(),
-            component_filter: default()
+            component_filter: default(),
         }
     }
 }
@@ -205,13 +212,11 @@ fn show_ui(world: &mut World) {
 
 fn save_scene(world: &mut World) {
     let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
-    
+
     let path = FileDialog::new()
         .add_filter("Bevy Scene", &["scn"])
         .set_directory(project_dir)
         .save_file();
-
-    
 }
 
 fn draw_menu(editor_state: &mut EditorState, world: &mut World, ui: &mut egui::Ui) {

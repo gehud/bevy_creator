@@ -1,7 +1,7 @@
-use bevy::ecs::{
-        reflect::{AppTypeRegistry, ReflectResource},
-        world::{Mut, World},
-    };
+use bevy_ecs::{
+    reflect::{AppTypeRegistry, ReflectResource},
+    world::{Mut, World},
+};
 use bevy_egui::egui::Ui;
 
 use crate::{
@@ -32,7 +32,7 @@ impl Panel for ResourcesPanel {
                     )
                 })
                 .collect();
-            
+
             resources.sort_by(|(name_a, _), (name_b, _)| name_a.cmp(name_b));
 
             for (resource_name, type_id) in resources {

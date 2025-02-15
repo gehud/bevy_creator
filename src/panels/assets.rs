@@ -1,9 +1,7 @@
-use bevy::{
-    asset::ReflectAsset,
-    ecs::{
-        reflect::AppTypeRegistry,
-        world::{Mut, World},
-    },
+use bevy_asset::ReflectAsset;
+use bevy_ecs::{
+    reflect::AppTypeRegistry,
+    world::{Mut, World},
 };
 use bevy_egui::egui::Ui;
 

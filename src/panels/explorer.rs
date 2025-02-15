@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use bevy::ecs::world::World;
+use bevy_ecs::world::World;
 use bevy_egui::egui::Ui;
 
 use crate::{editor::SelectedProject, panel::Panel};
@@ -30,7 +30,7 @@ impl ExplorerPanel {
         if path.file_name().unwrap() == ".bevy" {
             return;
         }
-        
+
         if path.is_file() {
             ui.label(path.file_name().unwrap().to_string_lossy());
         }

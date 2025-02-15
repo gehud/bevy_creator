@@ -1,7 +1,29 @@
-use bevy::{
-    prelude::*,
-    render::render_resource::{TextureDimension, TextureFormat, TextureUsages},
+use bevy_app::{App, Plugin};
+use bevy_asset::Assets;
+use bevy_color::{Color, LinearRgba};
+use bevy_core::Name;
+use bevy_core_pipeline::core_3d::Camera3d;
+use bevy_ecs::{
+    reflect::AppTypeRegistry,
+    system::{Commands, Res, ResMut},
+    world::World,
 };
+use bevy_hierarchy::{BuildChildren, ChildBuild};
+use bevy_image::Image;
+use bevy_math::{
+    primitives::{Cuboid, Plane3d},
+    Mat4, Quat, Vec2, Vec3,
+};
+use bevy_pbr::{AmbientLight, MeshMaterial3d, PointLight, StandardMaterial};
+use bevy_render::{
+    camera::Camera,
+    mesh::{Mesh, Mesh3d},
+    render_resource::{TextureDimension, TextureFormat, TextureUsages},
+};
+use bevy_scene::{DynamicScene, DynamicSceneRoot};
+use bevy_state::state::OnEnter;
+use bevy_transform::components::Transform;
+use bevy_utils::default;
 
 use crate::{editor::MainCamera, selection::PickSelection, AppState};
 

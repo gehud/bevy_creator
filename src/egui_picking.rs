@@ -1,11 +1,21 @@
 //! A raycasting backend for [`bevy_egui`]. This backend simply ensures that egui blocks other
 //! entities from being picked.
 
-use bevy::picking::backend::{HitData, PointerHits};
-use bevy::picking::pointer::{PointerId, PointerLocation};
-use bevy::picking::PickSet;
-use bevy::prelude::*;
-use bevy::render::camera::NormalizedRenderTarget;
+use bevy_app::{App, Plugin, PreUpdate};
+use bevy_ecs::change_detection::DetectChanges;
+use bevy_ecs::component::Component;
+use bevy_ecs::entity::Entity;
+use bevy_ecs::event::EventWriter;
+use bevy_ecs::query::With;
+use bevy_ecs::reflect::ReflectResource;
+use bevy_ecs::schedule::IntoSystemConfigs;
+use bevy_ecs::system::{Commands, Query, Res, Resource};
+use bevy_picking::backend::{HitData, PointerHits};
+use bevy_picking::pointer::{PointerId, PointerLocation};
+use bevy_picking::PickSet;
+use bevy_reflect::prelude::ReflectDefault;
+use bevy_reflect::Reflect;
+use bevy_render::camera::NormalizedRenderTarget;
 
 use bevy_egui::EguiContext;
 

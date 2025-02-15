@@ -10,14 +10,14 @@ const PROJECT_CONFIG_PARAMS: (&str, &str, &str) = ("com", "Gehud", "BevyEditor")
 
 pub fn save_json_config(file: &str, contents: String) {
     let Ok(_) = ensure_config_dir() else {
-        bevy::log::error!("Could not create config directory.");
+        bevy_log::error!("Could not create config directory.");
         return;
     };
 
     let result = write_json_config(file, contents);
     match result {
-        Ok(_) => bevy::log::info!("Saved \"{}\" config file", file),
-        Err(e) => bevy::log::error!("Error saving \"{}\" file: {}", file, e.kind()),
+        Ok(_) => bevy_log::info!("Saved \"{}\" config file", file),
+        Err(e) => bevy_log::error!("Error saving \"{}\" file: {}", file, e.kind()),
     }
 }
 
