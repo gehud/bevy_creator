@@ -135,7 +135,7 @@ fn setup_scene(
         });
 
     let scene = DynamicScene::from_world(&scene_world);
-    commands.spawn(DynamicSceneRoot(scenes.add(scene)));
+    commands.spawn((DynamicSceneRoot(scenes.add(scene)), Name::new("Untitled")));
 }
 
 fn add_editor_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
@@ -158,7 +158,6 @@ fn add_editor_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>) 
         Camera3d::default(),
         Camera {
             target: image_handle.into(),
-            clear_color: ClearColorConfig::Custom(Color::linear_rgb(0.1, 0.1, 0.1)),
             ..default()
         },
         MainCamera,

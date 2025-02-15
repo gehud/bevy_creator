@@ -39,7 +39,7 @@ impl TabViewer for PanelViewer<'_> {
 
     fn ui(&mut self, ui: &mut Ui, window: &mut Self::Tab) {
         if let Some(panel) = self.panels.get_mut(window) {
-            panel.draw(self.world, ui);
+            panel.ui(self.world, ui);
         }
     }
 

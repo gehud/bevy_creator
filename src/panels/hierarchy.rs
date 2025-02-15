@@ -28,7 +28,7 @@ impl Panel for HierarchyPanel {
         "Hierarchy".into()
     }
 
-    fn draw(&mut self, world: &mut World, ui: &mut Ui) {
+    fn ui(&mut self, world: &mut World, ui: &mut Ui) {
         world.resource_scope(|world, mut state: Mut<InspectorState>| {
             let type_registry = world.resource::<AppTypeRegistry>().clone();
             let type_registry = type_registry.read();

@@ -7,6 +7,7 @@ use bevy::ecs::component::Component;
 use bevy::input::ButtonInput;
 use bevy::prelude::{in_state, EventReader, KeyCode, OnEnter, Pointer, Query, Res, With, World};
 use bevy::prelude::{IntoSystemConfigs, ResMut, Resource};
+use bevy::utils::default;
 use bevy::utils::hashbrown::HashMap;
 use rfd::FileDialog;
 
@@ -115,6 +116,7 @@ impl EditorState {
 pub struct InspectorState {
     pub selected_entities: SelectedEntities,
     pub selection: InspectorSelection,
+    pub component_filter: String,
 }
 
 impl InspectorState {
@@ -122,6 +124,7 @@ impl InspectorState {
         Self {
             selection: InspectorSelection::Entities,
             selected_entities: SelectedEntities::default(),
+            component_filter: default()
         }
     }
 }

@@ -17,7 +17,7 @@ impl Panel for ResourcesPanel {
         "Resources".into()
     }
 
-    fn draw(&mut self, world: &mut World, ui: &mut Ui) {
+    fn ui(&mut self, world: &mut World, ui: &mut Ui) {
         world.resource_scope(|world, mut state: Mut<InspectorState>| {
             let binding = world.resource::<AppTypeRegistry>().clone();
             let type_registry = binding.read();

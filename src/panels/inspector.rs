@@ -1,8 +1,14 @@
-use bevy::ecs::{
-    reflect::AppTypeRegistry,
-    world::{Mut, World},
+use std::any::TypeId;
+
+use bevy::{
+    ecs::{
+        component::Component,
+        reflect::{AppTypeRegistry, ReflectComponent},
+        world::{Mut, World},
+    },
+    utils::HashSet,
 };
-use bevy_egui::egui::Ui;
+use bevy_egui::egui::{Align, Direction, Layout, ScrollArea, TextEdit, Ui};
 use bevy_inspector_egui::bevy_inspector::{
     self, ui_for_entities_shared_components, ui_for_entity_with_children,
 };
@@ -20,16 +26,13 @@ impl Panel for InspectorPanel {
         "Inspector".into()
     }
 
-    fn draw(&mut self, world: &mut World, ui: &mut Ui) {
-        world.resource_scope(|world, state: Mut<InspectorState>| {
+    fn ui(&mut self, world: &mut World, ui: &mut Ui) {
+        world.resource_scope(|world, mut state: Mut<InspectorState>| {
             let binding = world.resource::<AppTypeRegistry>().clone();
             let type_registry = binding.read();
 
             match state.selection {
-                InspectorSelection::Entities => match state.selected_entities.as_slice() {
-                    &[entity] => ui_for_entity_with_children(world, entity, ui),
-                    entities => ui_for_entities_shared_components(world, entities, ui),
-                },
+                InspectorSelection::Entities => entity_ui(&mut state, world, ui),
                 InspectorSelection::Resource(type_id, ref name) => {
                     ui.label(name);
                     bevy_inspector::by_type_id::ui_for_resource(
@@ -53,4 +56,50 @@ impl Panel for InspectorPanel {
             }
         });
     }
+}
+
+fn entity_ui(state: &mut InspectorState, world: &mut World, ui: &mut Ui) {
+    match state.selected_entities.as_slice() {
+        &[entity] => ui_for_entity_with_children(world, entity, ui),
+        entities => ui_for_entities_shared_components(world, entities, ui),
+    };
+
+    ui.with_layout(
+        Layout::top_down(Align::Center).with_cross_justify(true),
+        |ui| {
+            ui.menu_button("Add Component", |ui| {
+                ui.text_edit_singleline(&mut state.component_filter);
+
+                ScrollArea::new([false, true])
+                    .min_scrolled_height(256.0)
+                    .max_height(256.0)
+                    .show(ui, |ui| {
+                        let type_registry = world.resource::<AppTypeRegistry>().clone();
+                        let type_registry = type_registry.read();
+
+                        let component_ids = type_registry
+                            .iter()
+                            .map(|registration| registration.data::<ReflectComponent>())
+                            .filter(|component| component.is_some())
+                            .map(|component| component.unwrap().register_component(world))
+                            .collect::<Vec<_>>();
+
+                        let components = component_ids
+                            .iter()
+                            .map(|id| world.components().get_info(*id).unwrap())
+                            .filter(|info| {
+                                info.name()
+                                    .to_lowercase()
+                                    .contains(&state.component_filter.to_lowercase())
+                            });
+
+                        for component in components {
+                            if ui.button(component.name()).clicked() {
+                                ui.close_menu();
+                            }
+                        }
+                    });
+            });
+        },
+    );
 }

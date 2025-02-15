@@ -23,6 +23,7 @@ directories = "6.0.0"
 
 [workspace]
 resolver = "2"
+members = ["crates/*"]
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

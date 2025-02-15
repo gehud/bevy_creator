@@ -13,7 +13,7 @@ impl Panel for ExplorerPanel {
         "Explorer".into()
     }
 
-    fn draw(&mut self, world: &mut World, ui: &mut Ui) {
+    fn ui(&mut self, world: &mut World, ui: &mut Ui) {
         let project_dir = world
             .get_resource::<SelectedProject>()
             .unwrap()

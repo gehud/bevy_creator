@@ -39,7 +39,7 @@ impl Panel for ScenePanel {
         "Scene".into()
     }
 
-    fn draw(&mut self, world: &mut World, ui: &mut Ui) {
+    fn ui(&mut self, world: &mut World, ui: &mut Ui) {
         if self.last_viewport_size != ui.min_size() {
             world
                 .run_system_once_with(ui.min_rect(), update_viewport)

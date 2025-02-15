@@ -8,18 +8,18 @@
             "name": "(Windows) Launch",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/target/debug/BevyEditor.exe",
+            "program": "${workspaceFolder}/target/bin/BevyEditor.exe",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "${workspaceFolder}",
+            "cwd": "${workspaceFolder}/target/bin",
             "environment": [
                 {
                     "name": "PATH",
-                    "value": "%USERPROFILE%/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin;${workspaceFolder}/target/debug/deps;%PATH%"
+                    "value": "%USERPROFILE%/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin;%PATH%"
                 }
             ],
             "console": "internalConsole",
-            "preLaunchTask": "rust: cargo build"
+            "preLaunchTask": "rust: cargo install"
         }
     ]
 }
