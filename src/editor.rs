@@ -1,4 +1,5 @@
 use std::any::TypeId;
+use std::error::Error;
 use std::path::PathBuf;
 
 use bevy_app::{App, Plugin, PreUpdate};
@@ -6,16 +7,19 @@ use bevy_asset::UntypedAssetId;
 use bevy_ecs::component::Component;
 use bevy_ecs::event::EventReader;
 use bevy_ecs::query::With;
+use bevy_ecs::reflect::AppTypeRegistry;
 use bevy_ecs::schedule::IntoSystemConfigs;
 use bevy_ecs::system::{Query, Res, ResMut, Resource};
 use bevy_ecs::world::World;
 use bevy_input::keyboard::KeyCode;
 use bevy_input::ButtonInput;
 use bevy_picking::events::Pointer;
+use bevy_reflect::TypeRegistry;
 use bevy_state::condition::in_state;
 use bevy_state::state::OnEnter;
 use bevy_utils::default;
 use bevy_utils::hashbrown::HashMap;
+use libloading::{Library, Symbol};
 use rfd::FileDialog;
 
 use crate::demo_scene::DemoScenePlugin;
@@ -83,6 +87,7 @@ impl Plugin for EditorPlugin {
 pub struct EditorState {
     pub docking: EditorDockState,
     pub panels: HashMap<String, Box<dyn Panel>>,
+    pub lib: Option<Library>,
 }
 
 impl EditorState {
@@ -90,6 +95,7 @@ impl EditorState {
         Self {
             docking: EditorDockState::standard(),
             panels: HashMap::default(),
+            lib: default(),
         }
     }
 
@@ -116,6 +122,26 @@ impl EditorState {
             .show(ctx, &mut panel_viewer);
 
         ctx.request_repaint();
+    }
+
+    fn build(&mut self, world: &mut World) -> Result<(), Box<dyn Error>> {
+        let selected_project = world.resource::<SelectedProject>();
+        let mut path = selected_project.dir.clone().unwrap();
+        path.push("target/debug/bevy_project");
+
+        unsafe {
+            self.lib = Some(Library::new(path)?);
+
+            if let Some(lib) = &mut self.lib {
+                let func =
+                    lib.get::<Symbol<unsafe extern "C" fn(&mut TypeRegistry)>>(b"register_types")?;
+                let type_registry = world.resource::<AppTypeRegistry>().clone();
+                let mut type_registry = type_registry.write();
+                func(&mut type_registry);
+            }
+
+            Ok(())
+        }
     }
 }
 
@@ -236,5 +262,9 @@ fn draw_menu(editor_state: &mut EditorState, world: &mut World, ui: &mut egui::U
                 }
             }
         });
+
+        if ui.button("Build").clicked() {
+            bevy_log::info!("{:?}", editor_state.build(world));
+        }
     });
 }
