@@ -1,9 +1,10 @@
 use convert_case::{Case, Casing};
 use proc_macro::TokenStream;
 use proc_macro2::Span;
-use quote::{quote, ToTokens};
+use quote::quote;
 use syn::{
-    meta::ParseNestedMeta, parse::Parse, parse_macro_input, punctuated::Punctuated, spanned::Spanned, token::{self, Dot, Token}, Error, Expr, ExprCall, Ident, ItemFn, MetaNameValue, Token
+    parse_macro_input, punctuated::Punctuated, spanned::Spanned, Error, Ident, ItemFn,
+    MetaNameValue, Token,
 };
 
 #[proc_macro_attribute]
@@ -51,8 +52,8 @@ pub fn system(args: TokenStream, item: TokenStream) -> TokenStream {
 
         pub struct #config;
 
-        impl ::bevy_bootstrap::SystemConfig for #config {
-            fn add_system(app: &mut ::bevy_app::App) {
+        impl ::bevy::bootstrap::SystemConfig for #config {
+            fn add_system(app: &mut ::bevy::app::App) {
                 app.add_systems(#schedule, #system #dot #conditions);
             }
         }

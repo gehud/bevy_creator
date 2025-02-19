@@ -2,19 +2,19 @@ use crate::{
     config::{read_json_config, save_json_config},
     AppState,
 };
-use bevy_app::{App, Plugin, PreUpdate};
-use bevy_ecs::{
+use bevy::app::{App, Plugin, PreUpdate};
+use bevy::ecs::{
     entity::Entity,
     event::EventReader,
     query::With,
     schedule::IntoSystemConfigs,
     system::{NonSend, Query},
 };
-use bevy_state::{condition::in_state, state::OnEnter};
-use bevy_window::{
+use bevy::state::{condition::in_state, state::OnEnter};
+use bevy::window::{
     PrimaryWindow, Window, WindowCloseRequested, WindowMode, WindowPosition, WindowResolution,
 };
-use bevy_winit::WinitWindows;
+use bevy::winit::WinitWindows;
 use serde::{Deserialize, Serialize};
 
 const CONFIG_NAME: &str = "window";
@@ -45,7 +45,7 @@ fn restore_window_state(mut primary_window: Query<&mut Window, With<PrimaryWindo
     let mut window = primary_window.single_mut();
 
     if let Some(config) = load_window_config() {
-        bevy_log::info!("Loaded \"window\" config file");
+        bevy::log::info!("Loaded \"window\" config file");
         window.resolution = WindowResolution::new(
             config.width as f32 / config.scale_factor as f32,
             config.height as f32 / config.scale_factor as f32,
@@ -54,7 +54,7 @@ fn restore_window_state(mut primary_window: Query<&mut Window, With<PrimaryWindo
         window.position = config.position;
         window.set_maximized(config.maximized);
     } else {
-        bevy_log::info!("Could not load \"window\" config file. Setting to default");
+        bevy::log::info!("Could not load \"window\" config file. Setting to default");
         window.set_maximized(true);
     };
 }

@@ -2,23 +2,23 @@ use std::any::TypeId;
 use std::error::Error;
 use std::path::PathBuf;
 
-use bevy_app::{App, Plugin, PreUpdate};
-use bevy_asset::UntypedAssetId;
-use bevy_ecs::component::Component;
-use bevy_ecs::event::EventReader;
-use bevy_ecs::query::With;
-use bevy_ecs::reflect::AppTypeRegistry;
-use bevy_ecs::schedule::IntoSystemConfigs;
-use bevy_ecs::system::{Query, Res, ResMut, Resource};
-use bevy_ecs::world::World;
-use bevy_input::keyboard::KeyCode;
-use bevy_input::ButtonInput;
-use bevy_picking::events::Pointer;
-use bevy_reflect::TypeRegistry;
-use bevy_state::condition::in_state;
-use bevy_state::state::OnEnter;
-use bevy_utils::default;
-use bevy_utils::hashbrown::HashMap;
+use bevy::app::{App, Plugin, PreUpdate};
+use bevy::asset::UntypedAssetId;
+use bevy::ecs::component::Component;
+use bevy::ecs::event::EventReader;
+use bevy::ecs::query::With;
+use bevy::ecs::reflect::AppTypeRegistry;
+use bevy::ecs::schedule::IntoSystemConfigs;
+use bevy::ecs::system::{Query, Res, ResMut, Resource};
+use bevy::ecs::world::World;
+use bevy::input::keyboard::KeyCode;
+use bevy::input::ButtonInput;
+use bevy::picking::events::Pointer;
+use bevy::reflect::TypeRegistry;
+use bevy::state::condition::in_state;
+use bevy::state::state::OnEnter;
+use bevy::utils::default;
+use bevy::utils::hashbrown::HashMap;
 use libloading::{Library, Symbol};
 use rfd::FileDialog;
 
@@ -38,7 +38,7 @@ use bevy_egui::egui::{Id, TopBottomPanel};
 use bevy_egui::{egui, EguiContext};
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
-use bevy_window::{PrimaryWindow, Window};
+use bevy::window::{PrimaryWindow, Window};
 use egui_dock::DockArea;
 use transform_gizmo_egui::{EnumSet, Gizmo, GizmoMode};
 
@@ -127,7 +127,7 @@ impl EditorState {
     fn build(&mut self, world: &mut World) -> Result<(), Box<dyn Error>> {
         let selected_project = world.resource::<SelectedProject>();
         let mut path = selected_project.dir.clone().unwrap();
-        path.push("target/debug/bevy_project");
+        path.push("target/debug/bevy::project");
 
         unsafe {
             self.lib = Some(Library::new(path)?);
@@ -264,7 +264,7 @@ fn draw_menu(editor_state: &mut EditorState, world: &mut World, ui: &mut egui::U
         });
 
         if ui.button("Build").clicked() {
-            bevy_log::info!("{:?}", editor_state.build(world));
+            bevy::log::info!("{:?}", editor_state.build(world));
         }
     });
 }

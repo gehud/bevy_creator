@@ -1,5 +1,5 @@
-use bevy_asset::ReflectAsset;
-use bevy_ecs::{
+use bevy::asset::ReflectAsset;
+use bevy::ecs::{
     reflect::AppTypeRegistry,
     world::{Mut, World},
 };

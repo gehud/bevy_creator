@@ -1,6 +1,6 @@
-use bevy_ecs::world::World;
+use bevy::ecs::world::World;
 use bevy_egui::egui::{Ui, WidgetText};
-use bevy_utils::HashMap;
+use bevy::utils::HashMap;
 use egui_dock::{DockState, NodeIndex, TabViewer};
 
 use crate::panel::Panel;

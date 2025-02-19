@@ -7,344 +7,12 @@ edition = "2021"
 path = "src/main.rs"
 name = "BevyEditor"
 
-[features]
-default = [
-    "serialize",
-    "android-game-activity",
-    "android-game-activity",
-    "android_shared_stdcxx",
-    "animation",
-    "bevy_asset",
-    "bevy_audio",
-    "bevy_color",
-    "bevy_core_pipeline",
-    "bevy_gilrs",
-    "bevy_gizmos",
-    "bevy_gltf",
-    "bevy_mesh_picking_backend",
-    "bevy_pbr",
-    "bevy_picking",
-    "bevy_render",
-    "bevy_scene",
-    "bevy_sprite",
-    "bevy_sprite_picking_backend",
-    "bevy_state",
-    "bevy_text",
-    "bevy_ui",
-    "bevy_ui_picking_backend",
-    "bevy_window",
-    "bevy_winit",
-    "custom_cursor",
-    "default_font",
-    "hdr",
-    "multi_threaded",
-    "png",
-    "smaa_luts",
-    "sysinfo_plugin",
-    "tonemapping_luts",
-    "vorbis",
-    "webgl",
-    "x11",
-]
-
-trace = [
-    "bevy_app/trace",
-    "bevy_asset?/trace",
-    "bevy_core_pipeline?/trace",
-    "bevy_ecs/trace",
-    "bevy_log/trace",
-    "bevy_pbr?/trace",
-    "bevy_render?/trace",
-    "bevy_hierarchy/trace",
-    "bevy_winit?/trace",
-]
-trace_chrome = ["bevy_log/tracing-chrome"]
-trace_tracy = ["bevy_render?/tracing-tracy", "bevy_log/tracing-tracy"]
-trace_tracy_memory = ["bevy_log/trace_tracy_memory"]
-detailed_trace = ["bevy_ecs/detailed_trace", "bevy_render?/detailed_trace"]
-
-sysinfo_plugin = ["bevy_diagnostic/sysinfo_plugin"]
-
-# Texture formats that have specific rendering support (HDR enabled by default)
-basis-universal = ["bevy_image/basis-universal", "bevy_render/basis-universal"]
-dds = [
-    "bevy_image/dds",
-    "bevy_render/dds",
-    "bevy_core_pipeline/dds",
-    "bevy_gltf/dds",
-]
-exr = ["bevy_image/exr", "bevy_render/exr"]
-hdr = ["bevy_image/hdr", "bevy_render/hdr"]
-ktx2 = ["bevy_image/ktx2", "bevy_render/ktx2"]
-
-# For ktx2 supercompression
-zlib = ["bevy_image/zlib"]
-zstd = ["bevy_image/zstd"]
-
-# Image format support (PNG enabled by default)
-bmp = ["bevy_image/bmp"]
-ff = ["bevy_image/ff"]
-gif = ["bevy_image/gif"]
-ico = ["bevy_image/ico"]
-jpeg = ["bevy_image/jpeg"]
-png = ["bevy_image/png"]
-pnm = ["bevy_image/pnm"]
-qoi = ["bevy_image/qoi"]
-tga = ["bevy_image/tga"]
-tiff = ["bevy_image/tiff"]
-webp = ["bevy_image/webp"]
-
-# Enable SPIR-V passthrough
-spirv_shader_passthrough = ["bevy_render/spirv_shader_passthrough"]
-
-# Include tonemapping LUT KTX2 files.
-tonemapping_luts = ["bevy_core_pipeline/tonemapping_luts"]
-
-# Include SMAA LUT KTX2 Files
-smaa_luts = ["bevy_core_pipeline/smaa_luts"]
-
-# Audio format support (vorbis is enabled by default)
-flac = ["bevy_audio/flac"]
-mp3 = ["bevy_audio/mp3"]
-vorbis = ["bevy_audio/vorbis"]
-wav = ["bevy_audio/wav"]
-minimp3 = ["bevy_audio/minimp3"]
-symphonia-aac = ["bevy_audio/symphonia-aac"]
-symphonia-all = ["bevy_audio/symphonia-all"]
-symphonia-flac = ["bevy_audio/symphonia-flac"]
-symphonia-isomp4 = ["bevy_audio/symphonia-isomp4"]
-symphonia-vorbis = ["bevy_audio/symphonia-vorbis"]
-symphonia-wav = ["bevy_audio/symphonia-wav"]
-
-# Shader formats
-shader_format_glsl = [
-    "bevy_render/shader_format_glsl",
-    "bevy_pbr?/shader_format_glsl",
-]
-shader_format_spirv = ["bevy_render/shader_format_spirv"]
-
-serialize = [
-    "bevy_color?/serialize",
-    "bevy_core/serialize",
-    "bevy_ecs/serialize",
-    "bevy_input/serialize",
-    "bevy_math/serialize",
-    "bevy_scene?/serialize",
-    "bevy_sprite?/serialize",
-    "bevy_time/serialize",
-    "bevy_transform/serialize",
-    "bevy_ui?/serialize",
-    "bevy_window?/serialize",
-    "bevy_winit?/serialize",
-]
-multi_threaded = [
-    "bevy_asset?/multi_threaded",
-    "bevy_ecs/multi_threaded",
-    "bevy_render?/multi_threaded",
-    "bevy_tasks/multi_threaded",
-]
-async-io = ["bevy_tasks/async-io"]
-
-# Display server protocol support (X11 is enabled by default)
-wayland = ["bevy_winit/wayland"]
-x11 = ["bevy_winit/x11"]
-
-# Android activity support (choose one)
-android-native-activity = ["bevy_winit/android-native-activity"]
-android-game-activity = ["bevy_winit/android-game-activity"]
-
-# Transmission textures in `StandardMaterial`:
-pbr_transmission_textures = [
-    "bevy_pbr?/pbr_transmission_textures",
-    "bevy_gltf?/pbr_transmission_textures",
-]
-
-# Multi-layer material textures in `StandardMaterial`:
-pbr_multi_layer_material_textures = [
-    "bevy_pbr?/pbr_multi_layer_material_textures",
-    "bevy_gltf?/pbr_multi_layer_material_textures",
-]
-
-# Anisotropy texture in `StandardMaterial`:
-pbr_anisotropy_texture = [
-    "bevy_pbr?/pbr_anisotropy_texture",
-    "bevy_gltf?/pbr_anisotropy_texture",
-]
-
-# Percentage-closer soft shadows
-experimental_pbr_pcss = ["bevy_pbr?/experimental_pbr_pcss"]
-
-# Optimise for WebGL2
-webgl = [
-    "bevy_core_pipeline?/webgl",
-    "bevy_pbr?/webgl",
-    "bevy_render?/webgl",
-    "bevy_gizmos?/webgl",
-    "bevy_sprite?/webgl",
-]
-
-webgpu = [
-    "bevy_core_pipeline?/webgpu",
-    "bevy_pbr?/webgpu",
-    "bevy_render?/webgpu",
-    "bevy_gizmos?/webgpu",
-    "bevy_sprite?/webgpu",
-]
-
-# enable systems that allow for automated testing on CI
-bevy_ci_testing = ["bevy_dev_tools/bevy_ci_testing", "bevy_render?/ci_limits"]
-
-# Enable animation support, and glTF animation loading
-animation = ["bevy_animation", "bevy_gltf?/bevy_animation"]
-
-bevy_sprite = ["dep:bevy_sprite", "bevy_gizmos?/bevy_sprite", "bevy_image"]
-bevy_pbr = ["dep:bevy_pbr", "bevy_gizmos?/bevy_pbr", "bevy_image"]
-bevy_window = ["dep:bevy_window", "dep:bevy_a11y"]
-bevy_core_pipeline = ["dep:bevy_core_pipeline", "bevy_image"]
-bevy_gizmos = ["dep:bevy_gizmos", "bevy_image"]
-bevy_gltf = ["dep:bevy_gltf", "bevy_image"]
-bevy_ui = ["dep:bevy_ui", "bevy_image"]
-bevy_image = ["dep:bevy_image"]
-
-# Used to disable code that is unsupported when Bevy is dynamically linked
-dynamic_linking = ["bevy_diagnostic/dynamic_linking"]
-
-# Enable using a shared stdlib for cxx on Android.
-android_shared_stdcxx = ["bevy_audio/android_shared_stdcxx"]
-
-# Enable AccessKit on Unix backends (currently only works with experimental
-# screen readers and forks.)
-accesskit_unix = ["bevy_winit/accesskit_unix"]
-
-bevy_text = ["dep:bevy_text", "bevy_image"]
-
-bevy_render = [
-    "dep:bevy_render",
-    "bevy_scene?/bevy_render",
-    "bevy_gizmos?/bevy_render",
-    "bevy_image",
-]
-
-# Enable assertions to check the validity of parameters passed to glam
-glam_assert = ["bevy_math/glam_assert"]
-
-# Enable assertions in debug builds to check the validity of parameters passed to glam
-debug_glam_assert = ["bevy_math/debug_glam_assert"]
-
-default_font = ["bevy_text?/default_font"]
-
-# Enables the built-in asset processor for processed assets.
-asset_processor = ["bevy_asset?/asset_processor"]
-
-# Enables watching the filesystem for Bevy Asset hot-reloading
-file_watcher = ["bevy_asset?/file_watcher"]
-
-# Enables watching embedded files for Bevy Asset hot-reloading
-embedded_watcher = ["bevy_asset?/embedded_watcher"]
-
-# Enable system stepping support
-bevy_debug_stepping = [
-    "bevy_ecs/bevy_debug_stepping",
-    "bevy_app/bevy_debug_stepping",
-]
-
-# Enables the meshlet renderer for dense high-poly scenes (experimental)
-meshlet = ["bevy_pbr?/meshlet"]
-
-# Enables processing meshes into meshlet meshes for bevy_pbr
-meshlet_processor = ["bevy_pbr?/meshlet_processor"]
-
-# Provides a collection of developer tools
-bevy_dev_tools = ["dep:bevy_dev_tools"]
-
-# Enable support for the Bevy Remote Protocol
-bevy_remote = ["dep:bevy_remote"]
-
-# Provides picking functionality
-bevy_picking = ["dep:bevy_picking"]
-
-# Provides a mesh picking backend
-bevy_mesh_picking_backend = [
-    "bevy_picking",
-    "bevy_picking/bevy_mesh_picking_backend",
-]
-
-# Provides a sprite picking backend
-bevy_sprite_picking_backend = [
-    "bevy_picking",
-    "bevy_sprite/bevy_sprite_picking_backend",
-]
-
-# Provides a UI picking backend
-bevy_ui_picking_backend = ["bevy_picking", "bevy_ui/bevy_ui_picking_backend"]
-
-# Enable support for the ios_simulator by downgrading some rendering capabilities
-ios_simulator = ["bevy_pbr?/ios_simulator", "bevy_render?/ios_simulator"]
-
-# Enable built in global state machines
-bevy_state = ["dep:bevy_state"]
-
-# Enables source location tracking for change detection, which can assist with debugging
-track_change_detection = ["bevy_ecs/track_change_detection"]
-
-# Enable function reflection
-reflect_functions = [
-    "bevy_reflect/functions",
-    "bevy_app/reflect_functions",
-    "bevy_ecs/reflect_functions",
-]
-
-# Enable winit custom cursor support
-custom_cursor = ["bevy_winit/custom_cursor"]
-
-# Experimental support for nodes that are ignored for UI layouting
-ghost_nodes = ["bevy_ui/ghost_nodes"]
-
 [dependencies]
-# bevy
-bevy_a11y = { version = "0.15", optional = true }
-bevy_app = { version = "0.15" }
-bevy_core = { version = "0.15" }
-bevy_derive = { version = "0.15" }
-bevy_diagnostic = { version = "0.15" }
-bevy_ecs = { version = "0.15" }
-bevy_state = { version = "0.15", optional = true }
-bevy_hierarchy = { version = "0.15" }
-bevy_input = { version = "0.15" }
-bevy_log = { version = "0.15" }
-bevy_math = { version = "0.15" }
-bevy_ptr = { version = "0.15" }
-bevy_reflect = { version = "0.15", features = ["bevy"] }
-bevy_time = { version = "0.15" }
-bevy_transform = { version = "0.15" }
-bevy_utils = { version = "0.15" }
-bevy_window = { version = "0.15", optional = true }
-bevy_tasks = { version = "0.15" }
-# bevy (optional)
-bevy_animation = { version = "0.15", optional = true }
-bevy_asset = { version = "0.15", optional = true }
-bevy_audio = { version = "0.15", optional = true }
-bevy_color = { version = "0.15", optional = true }
-bevy_core_pipeline = { version = "0.15", optional = true }
-bevy_dev_tools = { version = "0.15", optional = true }
-bevy_gilrs = { version = "0.15", optional = true }
-bevy_gizmos = { version = "0.15", optional = true, default-features = false }
-bevy_gltf = { version = "0.15", optional = true }
-bevy_image = { version = "0.15", optional = true }
-bevy_pbr = { version = "0.15", optional = true }
-bevy_picking = { version = "0.15", optional = true }
-bevy_remote = { version = "0.15", optional = true }
-bevy_render = { version = "0.15", optional = true }
-bevy_scene = { version = "0.15", optional = true }
-bevy_sprite = { version = "0.15", optional = true }
-bevy_text = { version = "0.15", optional = true }
-bevy_ui = { version = "0.15", optional = true }
-bevy_winit = { version = "0.15", optional = true }
-
+bevy = { version = "0.15", features = ["serialize"] }
 bevy_egui = "0.32.0"
 egui_dock = { version = "0.15.0", features = ["serde"] }
-transform-gizmo-egui = "0.4"
 bevy-inspector-egui = "0.29.1"
+transform-gizmo-egui = "0.4"
 rfd = "0.15.2"
 image = "0.25"
 winit = "0.30"
@@ -386,4 +54,43 @@ opt-level = "s"
 strip = "debuginfo"
 
 [patch.crates-io]
+bevy = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_a11y = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_app = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_core = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_derive = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_diagnostic = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_ecs = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_state = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_hierarchy = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_input = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_log = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_math = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_ptr = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_reflect = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_time = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_transform = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_utils = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_window = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_tasks = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_animation = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_asset = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_audio = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_color = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_core_pipeline = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_dev_tools = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_gilrs = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_gizmos = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_gltf = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_image = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_pbr = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_picking = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_remote = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_render = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_scene = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_sprite = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_text = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_ui = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+bevy_winit = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+
 transform-gizmo-egui = { git = "https://github.com/gehud/transform-gizmo.git" }

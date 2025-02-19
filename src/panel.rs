@@ -1,4 +1,4 @@
-use bevy_ecs::world::World;
+use bevy::ecs::world::World;
 use bevy_egui::egui::Ui;
 
 pub trait Panel: Send + Sync {

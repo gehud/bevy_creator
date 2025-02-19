@@ -5,8 +5,8 @@
 
 use std::collections::HashSet;
 
-use bevy_app::{App, Plugin, PreUpdate, Startup};
-use bevy_ecs::{
+use bevy::app::{App, Plugin, PreUpdate, Startup};
+use bevy::ecs::{
     component::Component,
     entity::Entity,
     event::{EventReader, EventWriter},
@@ -15,14 +15,14 @@ use bevy_ecs::{
     schedule::IntoSystemConfigs,
     system::{Commands, Query, Res, Resource},
 };
-use bevy_input::{keyboard::KeyCode, ButtonInput};
-use bevy_picking::{
+use bevy::input::{keyboard::KeyCode, ButtonInput};
+use bevy::picking::{
     events::{Click, Down, Pointer},
     input::spawn_mouse_pointer,
     pointer::{PointerButton, PointerId, PointerInput, PointerLocation},
     PickSet,
 };
-use bevy_reflect::{prelude::ReflectDefault, Reflect};
+use bevy::reflect::{prelude::ReflectDefault, Reflect};
 
 /// Runtime settings for the [`SelectionPlugin`] plugin.
 #[derive(Debug, Resource, Reflect)]

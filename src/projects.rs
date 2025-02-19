@@ -4,8 +4,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use bevy_app::{App, Plugin, PreUpdate};
-use bevy_ecs::{
+use bevy::app::{App, Plugin, PreUpdate};
+use bevy::ecs::{
     event::EventReader,
     query::With,
     schedule::IntoSystemConfigs,
@@ -18,12 +18,12 @@ use bevy_egui::{
     },
     EguiContexts,
 };
-use bevy_state::{
+use bevy::state::{
     condition::in_state,
     state::{NextState, OnEnter},
 };
-use bevy_window::{MonitorSelection, PrimaryWindow, Window, WindowCloseRequested, WindowPosition};
-use bevy_winit::WinitWindows;
+use bevy::window::{MonitorSelection, PrimaryWindow, Window, WindowCloseRequested, WindowPosition};
+use bevy::winit::WinitWindows;
 use image::ImageReader;
 use rfd::FileDialog;
 use serde::{Deserialize, Serialize};
@@ -95,7 +95,7 @@ fn load_config(mut state: ResMut<ProjectsState>) {
         match serde_json::from_str::<ProjectsState>(config.as_str()) {
             Ok(state) => state,
             Err(error) => {
-                bevy_log::error!("Cannot load config: {}", error);
+                bevy::log::error!("Cannot load config: {}", error);
                 ProjectsState::default()
             }
         }
@@ -173,7 +173,7 @@ fn check_dir<P: AsRef<Path>>(dir: P) -> bool {
         true
     } else {
         fs::create_dir(dir)
-            .inspect_err(|error| bevy_log::error!("{}", error))
+            .inspect_err(|error| bevy::log::error!("{}", error))
             .is_ok()
     }
 }

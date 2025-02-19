@@ -1,10 +1,10 @@
-use bevy_app::{App, PluginGroup, PreUpdate};
-use bevy_ecs::schedule::{IntoSystemSetConfigs, SystemSet};
+use bevy::app::{App, PluginGroup, PreUpdate};
+use bevy::ecs::schedule::{IntoSystemSetConfigs, SystemSet};
 use bevy_egui::{EguiPlugin, EguiPreUpdateSet};
-use bevy_picking::{mesh_picking::MeshPickingPlugin, PickSet};
-use bevy_state::{app::AppExtStates, state::States};
-use bevy_utils::default;
-use bevy_window::{PresentMode, Window, WindowPlugin};
+use bevy::picking::{mesh_picking::MeshPickingPlugin, PickSet};
+use bevy::state::{app::AppExtStates, state::States};
+use bevy::utils::default;
+use bevy::window::{PresentMode, Window, WindowPlugin};
 use default_plugins::DefaultPlugins;
 use editor::EditorPlugin;
 use egui_picking::EguiPickingPlugin;

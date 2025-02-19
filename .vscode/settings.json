@@ -1,4 +1,0 @@
-{
-    "editor.inlayHints.enabled": "offUnlessPressed",
-    "rust-analyzer.showUnlinkedFileNotification": false
-}

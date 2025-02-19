@@ -1,5 +1,5 @@
-use bevy_asset::{Assets, Handle};
-use bevy_ecs::{
+use bevy::asset::{Assets, Handle};
+use bevy::ecs::{
     event::EventWriter,
     query::With,
     system::{In, Local, Query, Res, ResMut, RunSystemOnce},
@@ -9,16 +9,16 @@ use bevy_egui::{
     egui::{Rect, TextureId, Ui, Vec2 as EguiVec2},
     EguiContextSettings, EguiContexts,
 };
-use bevy_image::Image;
-use bevy_math::{Quat, UVec2, Vec2, Vec3};
-use bevy_picking::pointer::{Location, PointerAction, PointerId, PointerInput};
-use bevy_render::{
+use bevy::image::Image;
+use bevy::math::{Quat, UVec2, Vec2, Vec3};
+use bevy::picking::pointer::{Location, PointerAction, PointerId, PointerInput};
+use bevy::render::{
     camera::{Camera, CameraProjection, NormalizedRenderTarget, Projection},
     render_resource::Extent3d,
 };
-use bevy_transform::components::{GlobalTransform, Transform};
-use bevy_utils::default;
-use bevy_window::{PrimaryWindow, Window};
+use bevy::transform::components::{GlobalTransform, Transform};
+use bevy::utils::default;
+use bevy::window::{PrimaryWindow, Window};
 use transform_gizmo_egui::{math::Transform as GizmoTransform, GizmoConfig, GizmoOrientation};
 
 use crate::{

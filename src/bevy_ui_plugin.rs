@@ -6,7 +6,7 @@ use bevy::{
     input::mouse::{MouseScrollUnit, MouseWheel},
     prelude::*,
 };
-use bevy_core_pipeline::clear_color::ClearColorConfig;
+use bevy::core_pipeline::clear_color::ClearColorConfig;
 
 use super::UiState;
 
@@ -320,7 +320,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                                 background_color: Color::WHITE.into(),
                                 ..default()
                             },
-                            UiImage::new(asset_server.load("branding/bevy_logo_dark_big.png")),
+                            UiImage::new(asset_server.load("branding/bevy::logo_dark_big.png")),
                         ))
                         .with_children(|parent| {
                             // alt text

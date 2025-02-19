@@ -4,6 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy_app = { version = "0.15.2" }
-bevy_ecs = { version = "0.15.2", features = ["serialize"] }
+bevy = { version = "0.15", features = ["serialize"] }
 bevy_bootstrap_macros = { path = "macros" }

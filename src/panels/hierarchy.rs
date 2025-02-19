@@ -1,11 +1,11 @@
-use bevy_ecs::{
+use bevy::ecs::{
     query::With,
     reflect::AppTypeRegistry,
     world::{Mut, World},
 };
 use bevy_egui::egui::Ui;
 use bevy_inspector_egui::bevy_inspector::hierarchy::Hierarchy;
-use bevy_scene::SceneInstance;
+use bevy::scene::SceneInstance;
 
 use crate::{
     editor::{InspectorSelection, InspectorState},

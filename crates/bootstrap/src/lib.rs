@@ -1,4 +1,4 @@
-use bevy_app::App;
+use bevy::app::App;
 
 pub trait SystemConfig {
     fn add_system(app: &mut App);

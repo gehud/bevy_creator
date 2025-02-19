@@ -1,2 +1,11 @@
+# Rust build artifacts
 /target
+
+# Cargo
 Cargo.lock
+.cargo/config
+.cargo/config.toml
+
+# IDE files
+/.idea
+/.vscode

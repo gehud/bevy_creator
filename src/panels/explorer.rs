@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use bevy_ecs::world::World;
+use bevy::ecs::world::World;
 use bevy_egui::egui::Ui;
 
 use crate::{editor::SelectedProject, panel::Panel};
