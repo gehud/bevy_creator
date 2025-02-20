@@ -8,7 +8,7 @@ path = "src/main.rs"
 name = "BevyEditor"
 
 [dependencies]
-bevy = { version = "0.15", features = ["serialize"] }
+bevy = { version = "0.15", features = ["serialize", "bevy_dev_tools", "bevy_remote"] }
 bevy_egui = "0.32.0"
 egui_dock = { version = "0.15.0", features = ["serde"] }
 bevy-inspector-egui = "0.29.1"
@@ -92,5 +92,30 @@ bevy_sprite = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
 bevy_text = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
 bevy_ui = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
 bevy_winit = { git = "https://github.com/gehud/bevy.git", branch = "dynamic" }
+
+pin-project-lite = { git = "https://github.com/gehud/pin-project-lite.git", branch = "dynamic" }
+bitflags = { git = "https://github.com/gehud/bitflags.git", branch = "dynamic" }
+serde = { git = "https://github.com/gehud/serde.git", branch = "dynamic" }
+either = { git = "https://github.com/gehud/either.git", branch = "dynamic" }
+glam = { git = "https://github.com/gehud/glam.git", branch = "dynamic" }
+getrandom = { git = "https://github.com/gehud/getrandom.git", branch = "dynamic" }
+zerocopy = { git = "https://github.com/gehud/zerocopy.git", branch = "dynamic" }
+raw-window-handle = { git = "https://github.com/gehud/raw-window-handle.git", branch = "dynamic" }
+log = { git = "https://github.com/gehud/log.git", branch = "dynamic" }
+crossbeam-channel = { git = "https://github.com/gehud/crossbeam.git", branch = "dynamic" }
+windows-result = { git = "https://github.com/gehud/windows.git", branch = "dynamic" }
+memchr = { git = "https://github.com/gehud/memchr.git", branch = "dynamic" }
+thiserror = { git = "https://github.com/gehud/thiserror.git", branch = "dynamic" }
+tinyvec = { git = "https://github.com/gehud/tinyvec.git", branch = "dynamic" }
+winapi = { git = "https://github.com/gehud/winapi.git", branch = "dynamic" }
+regex = { git = "https://github.com/gehud/regex.git", branch = "dynamic" }
+lazy_static = { git = "https://github.com/gehud/lazy-static.git", branch = "dynamic" }
+serde_json = { git = "https://github.com/gehud/serde-json.git", branch = "dynamic" }
+anyhow = { git = "https://github.com/gehud/anyhow.git", branch = "dynamic" }
+async-lock = { git = "https://github.com/gehud/async-lock.git", branch = "dynamic" }
+event-listener = { git = "https://github.com/gehud/event-listener.git", branch = "dynamic" }
+event-listener-strategy = { git = "https://github.com/gehud/event-listener-strategy.git", branch = "dynamic" }
+fnv = { git = "https://github.com/gehud/fnv.git", branch = "dynamic" }
+unicode-segmentation = { git = "https://github.com/gehud/unicode-segmentation.git", branch = "dynamic" }
 
 transform-gizmo-egui = { git = "https://github.com/gehud/transform-gizmo.git" }
