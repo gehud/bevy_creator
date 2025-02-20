@@ -8,4 +8,5 @@ Cargo.lock
 
 # IDE files
 /.idea
-/.vscode
+.vscode/*
+!.vscode/launch_template.json

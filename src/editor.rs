@@ -179,7 +179,7 @@ impl GizmoState {
 
 fn init_panels(mut state: ResMut<EditorState>) {
     state.init_panel::<AssetsPanel>();
-    state.init_panel::<ExplorerPanel>();
+    // state.init_panel::<ExplorerPanel>();
     state.init_panel::<HierarchyPanel>();
     state.init_panel::<InspectorPanel>();
     state.init_panel::<ResourcesPanel>();
