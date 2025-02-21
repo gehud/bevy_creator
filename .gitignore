@@ -3,10 +3,3 @@
 
 # Cargo
 Cargo.lock
-.cargo/config
-.cargo/config.toml
-
-# IDE files
-/.idea
-.vscode/*
-!.vscode/launch_template.json

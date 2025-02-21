@@ -101,7 +101,13 @@ fn load_config(mut state: ResMut<ProjectsState>) {
         }
     } else {
         ProjectsState::default()
-    }
+    };
+
+    validate_projects(&mut state);
+}
+
+fn validate_projects(state: &mut ProjectsState) {
+    state.projects.retain(|path| path.exists());
 }
 
 fn save_config(state: &ProjectsState) {
