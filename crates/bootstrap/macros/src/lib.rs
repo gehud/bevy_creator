@@ -52,7 +52,7 @@ pub fn system(args: TokenStream, item: TokenStream) -> TokenStream {
 
         pub struct #config;
 
-        impl ::bevy::bootstrap::SystemConfig for #config {
+        impl ::bevy_bootstrap::SystemConfig for #config {
             fn add_system(app: &mut ::bevy::app::App) {
                 app.add_systems(#schedule, #system #dot #conditions);
             }

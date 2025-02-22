@@ -23,6 +23,7 @@ mod projects;
 mod selection;
 mod transform_gizmo_ext;
 mod window_config;
+mod util;
 
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 enum AppState {

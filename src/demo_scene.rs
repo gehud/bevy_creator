@@ -1,37 +1,55 @@
-use bevy::app::{App, Plugin};
+use std::f32::consts::PI;
+
+use bevy::app::{App, Plugin, Update};
 use bevy::asset::Assets;
-use bevy::color::{Color, LinearRgba};
+use bevy::color::{Color, Gray, LinearRgba};
 use bevy::core::Name;
 use bevy::core_pipeline::core_3d::Camera3d;
+use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::{
     reflect::AppTypeRegistry,
     system::{Commands, Res, ResMut},
     world::World,
 };
+use bevy::gizmos::config::{GizmoConfigGroup, GizmoConfigStore};
+use bevy::gizmos::gizmos::Gizmos;
+use bevy::gizmos::AppGizmoBuilder;
 use bevy::hierarchy::{BuildChildren, ChildBuild};
 use bevy::image::Image;
+use bevy::math::UVec2;
 use bevy::math::{
     primitives::{Cuboid, Plane3d},
     Mat4, Quat, Vec2, Vec3,
 };
 use bevy::pbr::{AmbientLight, MeshMaterial3d, PointLight, StandardMaterial};
+use bevy::reflect::Reflect;
 use bevy::render::{
     camera::Camera,
     mesh::{Mesh, Mesh3d},
     render_resource::{TextureDimension, TextureFormat, TextureUsages},
 };
 use bevy::scene::{DynamicScene, DynamicSceneRoot};
+use bevy::state::condition::in_state;
 use bevy::state::state::OnEnter;
 use bevy::transform::components::Transform;
 use bevy::utils::default;
 
 use crate::{editor::MainCamera, selection::PickSelection, AppState};
 
+// We can create our own gizmo config group!
+#[derive(Default, Reflect, GizmoConfigGroup)]
+struct EditorGizmosGroup {}
+
 pub struct DemoScenePlugin;
 
 impl Plugin for DemoScenePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::Editor), (setup_scene, add_editor_camera));
+        app.init_gizmo_group::<EditorGizmosGroup>()
+            .add_systems(
+                OnEnter(AppState::Editor),
+                (setup_scene, setup_editor_scene, setup_gizmos),
+            )
+            .add_systems(Update, draw_gizmo.run_if(in_state(AppState::Editor)));
     }
 }
 
@@ -160,7 +178,7 @@ fn setup_scene(
     commands.spawn((DynamicSceneRoot(scenes.add(scene)), Name::new("Untitled")));
 }
 
-fn add_editor_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
+fn setup_editor_scene(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let mut image = Image::new_fill(
         default(),
         TextureDimension::D2,
@@ -184,4 +202,19 @@ fn add_editor_camera(mut commands: Commands, mut images: ResMut<Assets<Image>>) 
         },
         MainCamera,
     ));
+}
+
+fn setup_gizmos(mut config_store: ResMut<GizmoConfigStore>) {
+    let (config, _) = config_store.config_mut::<EditorGizmosGroup>();
+    config.line_width = 0.5;
+}
+
+fn draw_gizmo(mut gizmos: Gizmos<EditorGizmosGroup>) {
+    gizmos.grid(
+        Quat::from_rotation_x(PI / 2.),
+        UVec2::splat(20),
+        Vec2::new(2., 2.),
+        // Light gray
+        LinearRgba::gray(0.65),
+    );
 }

@@ -27,12 +27,9 @@ impl Panel for ExplorerPanel {
 
 impl ExplorerPanel {
     fn draw_recursive(&self, path: &PathBuf, ui: &mut Ui) {
-        if path.file_name().unwrap() == ".bevy" {
-            return;
-        }
-
-        if path.is_file() {
+        if !path.is_dir() {
             ui.label(path.file_name().unwrap().to_string_lossy());
+            return;
         }
 
         let entries = std::fs::read_dir(path).unwrap();

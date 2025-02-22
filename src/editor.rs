@@ -124,10 +124,10 @@ impl EditorState {
         ctx.request_repaint();
     }
 
-    fn build(&mut self, world: &mut World) -> Result<(), Box<dyn Error>> {
+    fn compile(&mut self, world: &mut World) -> Result<(), Box<dyn Error>> {
         let selected_project = world.resource::<SelectedProject>();
         let mut path = selected_project.dir.clone().unwrap();
-        path.push("target/debug/bevy::project");
+        path.push("target/debug/bevy_project");
 
         unsafe {
             self.lib = Some(Library::new(path)?);
@@ -263,8 +263,8 @@ fn draw_menu(editor_state: &mut EditorState, world: &mut World, ui: &mut egui::U
             }
         });
 
-        if ui.button("Build").clicked() {
-            bevy::log::info!("{:?}", editor_state.build(world));
+        if ui.button("Compile").clicked() {
+            bevy::log::info!("{:?}", editor_state.compile(world));
         }
     });
 }

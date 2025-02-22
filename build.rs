@@ -6,11 +6,14 @@ use std::path::PathBuf;
 
 fn main() {
     println!("cargo:rerun-if-changed=crates");
-    let output_path = get_output_path();
-    let input_path = Path::new(&env::var("CARGO_MANIFEST_DIR").unwrap()).join("crates");
-    let output_path = Path::new(&output_path).join("crates");
-    let res = copy_dir_all(input_path, output_path);
-    println!("cargo:warning={:#?}", res)
+    copy_to_to_build("crates");
+    copy_to_to_build("templates");
+}
+
+fn copy_to_to_build<P: AsRef<Path>>(path: P) {
+    let input_path = Path::new(&env::var("CARGO_MANIFEST_DIR").unwrap()).join(&path);
+    let output_path = Path::new(&get_build_path()).join(&path);
+    println!("cargo:warning={:#?}", copy_dir_all(input_path, output_path));
 }
 
 fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> {
@@ -28,7 +31,7 @@ fn copy_dir_all(src: impl AsRef<Path>, dst: impl AsRef<Path>) -> io::Result<()> 
     Ok(())
 }
 
-fn get_output_path() -> PathBuf {
+fn get_build_path() -> PathBuf {
     //<root or manifest path>/target/<profile>/
     let manifest_dir_string = env::var("CARGO_MANIFEST_DIR").unwrap();
     let build_type = env::var("PROFILE").unwrap();

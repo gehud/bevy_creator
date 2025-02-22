@@ -30,9 +30,7 @@ use serde::{Deserialize, Serialize};
 use winit::window::Icon;
 
 use crate::{
-    config::{read_json_config, save_json_config},
-    editor::SelectedProject,
-    AppSet, AppState,
+    config::{read_json_config, save_json_config}, editor::SelectedProject, util::copy_dir_all, AppSet, AppState
 };
 
 const CONFIG_NAME: &str = "projects";
@@ -185,19 +183,7 @@ fn check_dir<P: AsRef<Path>>(dir: P) -> bool {
 }
 
 fn create_project(project_dir: PathBuf) -> bool {
-    let mut cache_dir = project_dir.clone();
-    cache_dir.push(".bevy");
-    if !check_dir(cache_dir) {
-        return false;
-    }
-
-    let mut assets_dir = project_dir.clone();
-    assets_dir.push("assets");
-    if !check_dir(assets_dir) {
-        return false;
-    }
-
-    true
+    copy_dir_all("templates/project", project_dir).is_ok()
 }
 
 fn open_project(

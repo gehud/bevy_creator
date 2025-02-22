@@ -1,0 +1,11 @@
+[target.x86_64-pc-windows-msvc]
+# LLD linker
+#
+# You may need to install it:
+#
+# ```
+# cargo install -f cargo-binutils
+# rustup component add llvm-tools
+# ```
+linker = "rust-lld.exe"
+rustdocflags = ["-Clinker=rust-lld.exe"]
