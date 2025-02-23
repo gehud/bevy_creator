@@ -1,20 +1,24 @@
 use std::any::TypeId;
 use std::error::Error;
-use std::path::PathBuf;
+use std::fs::File;
+use std::io::Write;
+use std::path::{Path, PathBuf};
 
 use bevy::app::{App, Plugin, PreUpdate};
-use bevy::asset::UntypedAssetId;
+use bevy::asset::{Assets, UntypedAssetId};
 use bevy::ecs::component::Component;
 use bevy::ecs::event::EventReader;
 use bevy::ecs::query::With;
 use bevy::ecs::reflect::AppTypeRegistry;
 use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::system::{Query, Res, ResMut, Resource};
-use bevy::ecs::world::World;
+use bevy::ecs::world::{Mut, World};
 use bevy::input::keyboard::KeyCode;
 use bevy::input::ButtonInput;
+use bevy::pbr::StandardMaterial;
 use bevy::picking::events::Pointer;
 use bevy::reflect::TypeRegistry;
+use bevy::scene::{DynamicScene, DynamicSceneRoot, SceneInstance};
 use bevy::state::condition::in_state;
 use bevy::state::state::OnEnter;
 use bevy::utils::default;
@@ -33,12 +37,12 @@ use crate::panels::resources::ResourcesPanel;
 use crate::panels::scene::ScenePanel;
 use crate::window_config::WindowConfigPlugin;
 use crate::{AppSet, AppState};
+use bevy::window::{PrimaryWindow, Window};
 use bevy_egui::egui::panel::TopBottomSide;
 use bevy_egui::egui::{Id, TopBottomPanel};
 use bevy_egui::{egui, EguiContext};
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
-use bevy::window::{PrimaryWindow, Window};
 use egui_dock::DockArea;
 use transform_gizmo_egui::{EnumSet, Gizmo, GizmoMode};
 
@@ -58,6 +62,7 @@ pub enum InspectorSelection {
 #[derive(Default, Resource)]
 pub struct SelectedProject {
     pub dir: Option<PathBuf>,
+    pub active_scene_path: Option<PathBuf>,
 }
 
 pub struct EditorPlugin;
@@ -237,19 +242,73 @@ fn show_ui(world: &mut World) {
 }
 
 fn save_scene(world: &mut World) {
+    if world
+        .resource::<SelectedProject>()
+        .active_scene_path
+        .as_ref()
+        .is_none_or(|path| !path.exists())
+    {
+        save_scene_as(world);
+        return;
+    }
+
+    let path = world
+        .resource::<SelectedProject>()
+        .active_scene_path
+        .clone()
+        .unwrap();
+
+    save_scene_to(world, path);
+}
+
+fn save_scene_to<P: AsRef<Path>>(world: &mut World, path: P) {
+    let root = world.query::<&DynamicSceneRoot>().single(world);
+    let scene = world
+        .resource::<Assets<DynamicScene>>()
+        .get(root.id())
+        .unwrap();
+
+    let type_registry = world.resource::<AppTypeRegistry>();
+    let type_registry = type_registry.read();
+
+    match scene.serialize(&type_registry) {
+        Ok(serialized_scene) => {
+            File::create(path)
+            .and_then(|mut file| file.write(serialized_scene.as_bytes()))
+            .expect("Error while writing scene to file");
+        },
+        Err(err) => {
+            bevy::log::error!("Scene saving error: {}", err);
+        },
+    };
+}
+
+fn save_scene_as(world: &mut World) {
     let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
 
     let path = FileDialog::new()
         .add_filter("Bevy Scene", &["scn"])
         .set_directory(project_dir)
         .save_file();
+
+    if path.is_none() {
+        return;
+    }
+
+    world.resource_mut::<SelectedProject>().active_scene_path = path.clone();
+    save_scene_to(world, path.unwrap());
 }
 
 fn draw_menu(editor_state: &mut EditorState, world: &mut World, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
         ui.menu_button("File", |ui| {
-            if ui.button("Save As...").clicked() {
+            if ui.button("Save").clicked() {
                 save_scene(world);
+                ui.close_menu();
+            }
+
+            if ui.button("Save As...").clicked() {
+                save_scene_as(world);
                 ui.close_menu();
             }
         });

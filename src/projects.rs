@@ -1,7 +1,6 @@
 use std::{
-    fs,
     io::Cursor,
-    path::{Path, PathBuf},
+    path::PathBuf,
 };
 
 use bevy::app::{App, Plugin, PreUpdate};
@@ -169,16 +168,6 @@ fn ui(
                 }
             });
         });
-    }
-}
-
-fn check_dir<P: AsRef<Path>>(dir: P) -> bool {
-    if dir.as_ref().exists() {
-        true
-    } else {
-        fs::create_dir(dir)
-            .inspect_err(|error| bevy::log::error!("{}", error))
-            .is_ok()
     }
 }
 

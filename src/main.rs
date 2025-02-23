@@ -1,11 +1,14 @@
+use assets::EditorAssetPlugin;
 use bevy::app::{App, PluginGroup, PreUpdate};
+use bevy::asset::{AssetMode, AssetPlugin};
 use bevy::ecs::schedule::{IntoSystemSetConfigs, SystemSet};
-use bevy::DefaultPlugins;
-use bevy_egui::{EguiPlugin, EguiPreUpdateSet};
 use bevy::picking::{mesh_picking::MeshPickingPlugin, PickSet};
+use bevy::reflect::Reflect;
 use bevy::state::{app::AppExtStates, state::States};
 use bevy::utils::default;
 use bevy::window::{PresentMode, Window, WindowPlugin};
+use bevy::DefaultPlugins;
+use bevy_egui::{EguiPlugin, EguiPreUpdateSet};
 use editor::EditorPlugin;
 use egui_picking::EguiPickingPlugin;
 use projects::ProjectsPlugin;
@@ -22,8 +25,9 @@ mod panels;
 mod projects;
 mod selection;
 mod transform_gizmo_ext;
-mod window_config;
 mod util;
+mod window_config;
+mod assets;
 
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 enum AppState {
@@ -39,15 +43,22 @@ enum AppSet {
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                present_mode: PresentMode::AutoNoVsync,
-                title: "BevyEditor".into(),
-                resolution: (640., 360.).into(),
-                ..default()
-            }),
-            ..default()
-        }))
+        .add_plugins(
+            DefaultPlugins
+                .set(WindowPlugin {
+                    primary_window: Some(Window {
+                        present_mode: PresentMode::AutoNoVsync,
+                        title: "BevyEditor".into(),
+                        resolution: (640., 360.).into(),
+                        ..default()
+                    }),
+                    ..default()
+                })
+                .set(AssetPlugin {
+                    mode: AssetMode::Processed,
+                    ..default()
+                }),
+        )
         .init_state::<AppState>()
         .configure_sets(
             PreUpdate,
@@ -61,5 +72,6 @@ fn main() {
         .add_plugins(SelectionPlugin)
         .add_plugins(ProjectsPlugin)
         .add_plugins(EditorPlugin)
+        .add_plugins(EditorAssetPlugin)
         .run();
 }

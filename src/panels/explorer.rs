@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use bevy::ecs::world::World;
-use bevy_egui::egui::Ui;
+use bevy_egui::egui::{TextBuffer, Ui};
 
 use crate::{editor::SelectedProject, panel::Panel};
 
@@ -25,8 +25,15 @@ impl Panel for ExplorerPanel {
     }
 }
 
+const EXPLORER_EXCLUDE: &'static [&'static str] =
+    &[".bevy", ".cargo", "Cargo.toml", "Cargo.lock", "target"];
+
 impl ExplorerPanel {
     fn draw_recursive(&self, path: &PathBuf, ui: &mut Ui) {
+        if EXPLORER_EXCLUDE.contains(&path.file_name().unwrap().to_string_lossy().as_str()) {
+            return;
+        }
+
         if !path.is_dir() {
             ui.label(path.file_name().unwrap().to_string_lossy());
             return;

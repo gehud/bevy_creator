@@ -1,11 +1,24 @@
 use std::f32::consts::PI;
+use std::ops::Deref;
+use std::sync::{Arc, RwLockReadGuard};
 
-use bevy::app::{App, Plugin, Update};
-use bevy::asset::Assets;
+use bevy::app::{App, Plugin, Startup, Update};
+use bevy::asset::processor::{self, AssetProcessor, LoadAndSave, LoadTransformAndSave};
+use bevy::asset::saver::AssetSaver;
+use bevy::asset::transformer::IdentityAssetTransformer;
+use bevy::asset::{
+    Asset, AssetApp, AssetId, AssetLoader, AssetServer, Assets, AsyncWriteExt, Handle, StrongHandle,
+};
 use bevy::color::{Color, Gray, LinearRgba};
 use bevy::core::Name;
 use bevy::core_pipeline::core_3d::Camera3d;
+use bevy::ecs::component::Component;
+use bevy::ecs::entity::Entity;
+use bevy::ecs::query::With;
+use bevy::ecs::reflect::ReflectComponent;
 use bevy::ecs::schedule::IntoSystemConfigs;
+use bevy::ecs::system::Query;
+use bevy::ecs::world::unsafe_world_cell::UnsafeWorldCell;
 use bevy::ecs::{
     reflect::AppTypeRegistry,
     system::{Commands, Res, ResMut},
@@ -16,40 +29,55 @@ use bevy::gizmos::gizmos::Gizmos;
 use bevy::gizmos::AppGizmoBuilder;
 use bevy::hierarchy::{BuildChildren, ChildBuild};
 use bevy::image::Image;
+use bevy::math::primitives::Capsule3d;
 use bevy::math::UVec2;
 use bevy::math::{
     primitives::{Cuboid, Plane3d},
     Mat4, Quat, Vec2, Vec3,
 };
-use bevy::pbr::{AmbientLight, MeshMaterial3d, PointLight, StandardMaterial};
-use bevy::reflect::Reflect;
+use bevy::pbr::{AmbientLight, Material, MeshMaterial3d, PointLight, StandardMaterial};
+use bevy::reflect::erased_serde::deserialize;
+use bevy::reflect::serde::{ReflectDeserializer, ReflectSerializeWithRegistry, ReflectSerializer};
+use bevy::reflect::{
+    FromReflect, PartialReflect, Reflect, ReflectDeserialize, ReflectSerialize, TypeRegistry,
+};
 use bevy::render::{
     camera::Camera,
     mesh::{Mesh, Mesh3d},
     render_resource::{TextureDimension, TextureFormat, TextureUsages},
 };
+use bevy::scene::ron::ser::{to_string_pretty, PrettyConfig};
+use bevy::scene::ron::{to_string, Deserializer};
 use bevy::scene::{DynamicScene, DynamicSceneRoot};
 use bevy::state::condition::in_state;
 use bevy::state::state::OnEnter;
+use bevy::tasks::block_on;
 use bevy::transform::components::Transform;
 use bevy::utils::default;
+use serde::de::DeserializeSeed;
+use uuid::Uuid;
 
+use crate::assets::EditorAsset;
 use crate::{editor::MainCamera, selection::PickSelection, AppState};
 
 // We can create our own gizmo config group!
 #[derive(Default, Reflect, GizmoConfigGroup)]
-struct EditorGizmosGroup {}
+struct EditorGizmosGroup;
 
 pub struct DemoScenePlugin;
 
 impl Plugin for DemoScenePlugin {
     fn build(&self, app: &mut App) {
         app.init_gizmo_group::<EditorGizmosGroup>()
+            .register_type::<EditorMateralTarget>()
             .add_systems(
                 OnEnter(AppState::Editor),
-                (setup_scene, setup_editor_scene, setup_gizmos),
+                (setup_editor_scene, init_scene, setup_gizmos).chain(),
             )
-            .add_systems(Update, draw_gizmo.run_if(in_state(AppState::Editor)));
+            .add_systems(
+                Update,
+                (draw_gizmo, asset_assign).run_if(in_state(AppState::Editor)),
+            );
     }
 }
 
@@ -57,125 +85,65 @@ const BOX_SIZE: f32 = 2.0;
 const BOX_THICKNESS: f32 = 0.15;
 const BOX_OFFSET: f32 = (BOX_SIZE + BOX_THICKNESS) / 2.0;
 
-fn setup_scene(
+#[derive(Component)]
+struct EditorMaterialAssign {
+    handle: Handle<EditorAsset<StandardMaterial>>,
+}
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+struct EditorMateralTarget;
+
+fn init_scene(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     mut scenes: ResMut<Assets<DynamicScene>>,
+    mut meshes: ResMut<Assets<Mesh>>,
     app_type_registry: Res<AppTypeRegistry>,
+    asset_server: Res<AssetServer>,
 ) {
     let mut scene_world = World::new();
 
-    scene_world.insert_resource(app_type_registry.clone());
-
-    // left - red
-    let mut transform = Transform::from_xyz(-BOX_OFFSET, BOX_OFFSET, 0.0);
-    transform.rotate(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2));
     scene_world.spawn((
-        transform,
-        Mesh3d(meshes.add(Cuboid::new(BOX_SIZE, BOX_THICKNESS, BOX_SIZE))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.63, 0.065, 0.05),
-            ..Default::default()
-        })),
+        Mesh3d(meshes.add(Capsule3d::default())),
+        MeshMaterial3d(Handle::<StandardMaterial>::default()),
+        EditorMateralTarget,
         PickSelection::default(),
     ));
 
-    // right - green
-    let mut transform = Transform::from_xyz(BOX_OFFSET, BOX_OFFSET, 0.0);
-    transform.rotate(Quat::from_rotation_z(std::f32::consts::FRAC_PI_2));
-    scene_world.spawn((
-        transform,
-        Mesh3d(meshes.add(Cuboid::new(BOX_SIZE, BOX_THICKNESS, BOX_SIZE))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.14, 0.45, 0.091),
-            ..Default::default()
-        })),
-        PickSelection::default(),
-    ));
-
-    // bottom - white
-    scene_world.spawn((
-        Mesh3d(meshes.add(Cuboid::new(
-            BOX_SIZE + 2.0 * BOX_THICKNESS,
-            BOX_THICKNESS,
-            BOX_SIZE,
-        ))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.725, 0.71, 0.68),
-            ..Default::default()
-        })),
-        PickSelection::default(),
-    ));
-
-    // top - white
-    let transform = Transform::from_xyz(0.0, 2.0 * BOX_OFFSET, 0.0);
-    scene_world.spawn((
-        transform,
-        Mesh3d(meshes.add(Cuboid::new(
-            BOX_SIZE + 2.0 * BOX_THICKNESS,
-            BOX_THICKNESS,
-            BOX_SIZE,
-        ))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.725, 0.71, 0.68),
-            ..Default::default()
-        })),
-        PickSelection::default(),
-    ));
-
-    // back - white
-    let mut transform = Transform::from_xyz(0.0, BOX_OFFSET, -BOX_OFFSET);
-    transform.rotate(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2));
-    scene_world.spawn((
-        transform,
-        Mesh3d(meshes.add(Cuboid::new(
-            BOX_SIZE + 2.0 * BOX_THICKNESS,
-            BOX_THICKNESS,
-            BOX_SIZE + 2.0 * BOX_THICKNESS,
-        ))),
-        MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.725, 0.71, 0.68),
-            ..Default::default()
-        })),
-        PickSelection::default(),
-    ));
-
-    // ambient light
-    scene_world.insert_resource(AmbientLight {
-        color: Color::WHITE,
-        brightness: 50.0,
+    commands.spawn(EditorMaterialAssign {
+        handle: asset_server.load::<EditorAsset<StandardMaterial>>("materials/test.std.mat"),
     });
 
-    // top light
-    scene_world
-        .spawn((
-            Transform::from_matrix(Mat4::from_scale_rotation_translation(
-                Vec3::ONE,
-                Quat::from_rotation_x(std::f32::consts::PI),
-                Vec3::new(0.0, BOX_SIZE + 0.5 * BOX_THICKNESS, 0.0),
-            )),
-            Mesh3d(meshes.add(Plane3d::new(Vec3::Y, Vec2::ONE * 0.4))),
-            MeshMaterial3d(materials.add(StandardMaterial {
-                base_color: Color::WHITE,
-                emissive: LinearRgba::WHITE * 100.0,
-                ..Default::default()
-            })),
-            PickSelection::default(),
-        ))
-        .with_children(|builder| {
-            builder.spawn((
-                Transform::from_translation((BOX_THICKNESS + 0.05) * Vec3::Y),
-                PointLight {
-                    color: Color::WHITE,
-                    intensity: 4000.0,
-                    ..Default::default()
-                },
-            ));
-        });
-
+    scene_world.insert_resource(app_type_registry.clone());
     let scene = DynamicScene::from_world(&scene_world);
     commands.spawn((DynamicSceneRoot(scenes.add(scene)), Name::new("Untitled")));
+}
+
+fn asset_assign(
+    mut material_assigns: Query<(Entity, &EditorMaterialAssign)>,
+    mut material_targets: Query<
+        (Entity, &mut MeshMaterial3d<StandardMaterial>),
+        With<EditorMateralTarget>,
+    >,
+    mut editor_materials: ResMut<Assets<EditorAsset<StandardMaterial>>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    mut commands: Commands,
+) {
+    for (entity, assign) in material_assigns.iter_mut() {
+        if let Some(editor_material) = editor_materials.remove(&assign.handle) {
+            materials.insert(editor_material.uuid.clone(), editor_material.asset);
+
+            for (target, mut mesh_material) in material_targets.iter_mut() {
+                mesh_material.0 = Handle::Weak(AssetId::Uuid {
+                    uuid: editor_material.uuid.clone(),
+                });
+
+                commands.entity(target).remove::<EditorMateralTarget>();
+            }
+
+            commands.entity(entity).despawn();
+        }
+    }
 }
 
 fn setup_editor_scene(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
