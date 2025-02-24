@@ -1,4 +1,4 @@
-use assets::EditorAssetPlugin;
+use asset::EditorAssetPlugin;
 use bevy::app::{App, PluginGroup, PreUpdate};
 use bevy::asset::{AssetMode, AssetPlugin};
 use bevy::ecs::schedule::{IntoSystemSetConfigs, SystemSet};
@@ -27,7 +27,7 @@ mod selection;
 mod transform_gizmo_ext;
 mod util;
 mod window_config;
-mod assets;
+mod asset;
 
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 enum AppState {

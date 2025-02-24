@@ -1,37 +1,31 @@
-use std::{convert::Infallible, ops::Deref};
-
 use bevy::{
-    app::{Plugin, Startup, Update},
+    app::{Plugin, Startup},
     asset::{
         processor::{AssetProcessor, LoadTransformAndSave},
         saver::AssetSaver,
-        transformer::{AssetTransformer, IdentityAssetTransformer, TransformedAsset},
-        Asset, AssetApp, AssetEvent, AssetLoader, AssetServer, AsyncWriteExt, Handle,
+        transformer::IdentityAssetTransformer,
+        AssetApp, AssetLoader, AssetServer, AsyncWriteExt,
     },
-    ecs::{event::EventReader, reflect::AppTypeRegistry, schedule::IntoSystemConfigs, system::Res},
+    ecs::{reflect::AppTypeRegistry, schedule::IntoSystemConfigs, system::Res},
     pbr::StandardMaterial,
     reflect::{
         serde::{ReflectDeserializer, ReflectSerializer},
-        FromReflect, PartialReflect, Reflect, TypePath,
+        FromReflect,
     },
     scene::ron::{ser::to_string_pretty, Deserializer},
     utils::default,
 };
+
+use crate::asset::{EditorAsset, EditorAssetSet, EditorAssetSettings};
+
 use serde::de::DeserializeSeed;
-use uuid::Uuid;
 
-#[derive(Asset, TypePath, Debug)]
-pub struct EditorAsset<A: Asset + Reflect> {
-    pub uuid: Uuid,
-    pub asset: A,
-}
+pub struct StandardMaterialAssetPlugin;
 
-pub struct EditorAssetPlugin;
-
-impl Plugin for EditorAssetPlugin {
+impl Plugin for StandardMaterialAssetPlugin {
     fn build(&self, app: &mut bevy::app::App) {
         app.init_asset::<EditorAsset<StandardMaterial>>()
-            .add_systems(Startup, start.before(AssetProcessor::start));
+            .add_systems(Startup, start.in_set(EditorAssetSet::ProcessorRegistration));
     }
 }
 
@@ -40,11 +34,9 @@ fn start(
     asset_processor: Option<Res<AssetProcessor>>,
     app_type_registry: Res<AppTypeRegistry>,
 ) {
-    let loader = StandardMaterialLoader {
+    asset_server.register_loader(StandardMaterialLoader {
         type_registry: app_type_registry.clone(),
-    };
-
-    asset_server.register_loader(loader);
+    });
 
     if let Some(asset_processor) = asset_processor {
         asset_processor.register_processor(StandardMaterialProcessor::new(
@@ -53,6 +45,7 @@ fn start(
                 type_registry: app_type_registry.clone(),
             },
         ));
+
         asset_processor.set_default_processor::<StandardMaterialProcessor>("std.mat");
     }
 }
@@ -64,7 +57,7 @@ struct StandardMaterialLoader {
 impl AssetLoader for StandardMaterialLoader {
     type Asset = EditorAsset<StandardMaterial>;
 
-    type Settings = Uuid;
+    type Settings = EditorAssetSettings;
 
     type Error = std::io::Error;
 
@@ -83,7 +76,7 @@ impl AssetLoader for StandardMaterialLoader {
         let output = reflect_deserializer.deserialize(&mut deserializer).unwrap();
 
         Ok(EditorAsset::<StandardMaterial> {
-            uuid: *settings,
+            uuid: settings.uuid,
             asset: StandardMaterial::from_reflect(output.as_partial_reflect()).unwrap(),
         })
     }
@@ -100,7 +93,7 @@ struct StandardMaterialSaver {
 impl AssetSaver for StandardMaterialSaver {
     type Asset = EditorAsset<StandardMaterial>;
 
-    type Settings = Uuid;
+    type Settings = ();
 
     type OutputLoader = StandardMaterialLoader;
 
@@ -120,7 +113,10 @@ impl AssetSaver for StandardMaterialSaver {
 
         writer.write_all(text.as_bytes()).await?;
 
-        Ok(Uuid::new_v4())
+        Ok(EditorAssetSettings {
+            uuid: asset.uuid,
+            settings: (),
+        })
     }
 }
 

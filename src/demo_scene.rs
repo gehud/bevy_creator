@@ -57,7 +57,7 @@ use bevy::utils::default;
 use serde::de::DeserializeSeed;
 use uuid::Uuid;
 
-use crate::assets::EditorAsset;
+use crate::asset::{EditorAsset, EditorAssetSettings};
 use crate::{editor::MainCamera, selection::PickSelection, AppState};
 
 // We can create our own gizmo config group!

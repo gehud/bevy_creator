@@ -9,6 +9,7 @@ fn main() {
     copy_to_to_build("crates");
     copy_to_to_build("templates");
     copy_to_to_build("assets/materials");
+    copy_to_to_build("assets/models");
 }
 
 fn copy_to_to_build<P: AsRef<Path>>(path: P) {
