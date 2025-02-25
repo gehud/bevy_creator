@@ -24,14 +24,14 @@ use bevy::{
     scene::ron::{self, ser::to_string_pretty, Deserializer},
     utils::default,
 };
-use processors::{MeshAssetPlugin, StandardMaterialAssetPlugin};
+use processors::StandardMaterialAssetPlugin;
 use serde::{de::DeserializeSeed, Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
 
 mod processors;
 
-#[derive(Asset, TypePath, Debug)]
+#[derive(Asset, Reflect, Debug)]
 pub struct EditorAsset<A: Asset + Reflect> {
     pub uuid: Uuid,
     pub asset: A,
@@ -65,7 +65,6 @@ impl Plugin for EditorAssetPlugin {
             Startup,
             EditorAssetSet::ProcessorRegistration.before(AssetProcessor::start),
         )
-        .add_plugins(StandardMaterialAssetPlugin)
-        .add_plugins(MeshAssetPlugin);
+        .add_plugins(StandardMaterialAssetPlugin);
     }
 }

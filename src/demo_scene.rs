@@ -57,7 +57,7 @@ use bevy::utils::default;
 use serde::de::DeserializeSeed;
 use uuid::Uuid;
 
-use crate::asset::{EditorAsset, EditorAssetSettings};
+use crate::asset::EditorAsset;
 use crate::{editor::MainCamera, selection::PickSelection, AppState};
 
 // We can create our own gizmo config group!
@@ -70,6 +70,7 @@ impl Plugin for DemoScenePlugin {
     fn build(&self, app: &mut App) {
         app.init_gizmo_group::<EditorGizmosGroup>()
             .register_type::<EditorMateralTarget>()
+            .register_type::<EditorMeshTarget>()
             .add_systems(
                 OnEnter(AppState::Editor),
                 (setup_editor_scene, init_scene, setup_gizmos).chain(),
@@ -90,9 +91,18 @@ struct EditorMaterialAssign {
     handle: Handle<EditorAsset<StandardMaterial>>,
 }
 
+#[derive(Component)]
+struct EditorMeshAssign {
+    handle: Handle<EditorAsset<Mesh>>,
+}
+
 #[derive(Component, Reflect)]
 #[reflect(Component)]
 struct EditorMateralTarget;
+
+#[derive(Component, Reflect)]
+#[reflect(Component)]
+struct EditorMeshTarget;
 
 fn init_scene(
     mut commands: Commands,
@@ -104,12 +114,13 @@ fn init_scene(
     let mut scene_world = World::new();
 
     scene_world.spawn((
-        Mesh3d(meshes.add(Capsule3d::default())),
+        Mesh3d(Handle::<Mesh>::default()),
         MeshMaterial3d(Handle::<StandardMaterial>::default()),
         EditorMateralTarget,
+        EditorMeshTarget,
         PickSelection::default(),
     ));
-
+    
     commands.spawn(EditorMaterialAssign {
         handle: asset_server.load::<EditorAsset<StandardMaterial>>("materials/test.std.mat"),
     });
