@@ -1,9 +1,7 @@
 use asset::EditorAssetPlugin;
 use bevy::app::{App, PluginGroup, PreUpdate};
-use bevy::asset::{AssetMode, AssetPlugin};
 use bevy::ecs::schedule::{IntoSystemSetConfigs, SystemSet};
 use bevy::picking::{mesh_picking::MeshPickingPlugin, PickSet};
-use bevy::reflect::Reflect;
 use bevy::state::{app::AppExtStates, state::States};
 use bevy::utils::default;
 use bevy::window::{PresentMode, Window, WindowPlugin};
@@ -14,6 +12,7 @@ use egui_picking::EguiPickingPlugin;
 use projects::ProjectsPlugin;
 use selection::SelectionPlugin;
 
+mod asset;
 mod config;
 mod demo_scene;
 mod dock;
@@ -27,7 +26,6 @@ mod selection;
 mod transform_gizmo_ext;
 mod util;
 mod window_config;
-mod asset;
 
 #[derive(States, Default, Debug, Clone, PartialEq, Eq, Hash)]
 enum AppState {
@@ -43,22 +41,15 @@ enum AppSet {
 
 fn main() {
     App::new()
-        .add_plugins(
-            DefaultPlugins
-                .set(WindowPlugin {
-                    primary_window: Some(Window {
-                        present_mode: PresentMode::AutoNoVsync,
-                        title: "BevyEditor".into(),
-                        resolution: (640., 360.).into(),
-                        ..default()
-                    }),
-                    ..default()
-                })
-                .set(AssetPlugin {
-                    mode: AssetMode::Processed,
-                    ..default()
-                }),
-        )
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                present_mode: PresentMode::AutoNoVsync,
+                title: "BevyEditor".into(),
+                resolution: (640., 360.).into(),
+                ..default()
+            }),
+            ..default()
+        }))
         .init_state::<AppState>()
         .configure_sets(
             PreUpdate,

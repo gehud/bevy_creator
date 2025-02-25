@@ -12,13 +12,12 @@ use bevy::ecs::query::With;
 use bevy::ecs::reflect::AppTypeRegistry;
 use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::system::{Query, Res, ResMut, Resource};
-use bevy::ecs::world::{Mut, World};
+use bevy::ecs::world::World;
 use bevy::input::keyboard::KeyCode;
 use bevy::input::ButtonInput;
-use bevy::pbr::StandardMaterial;
 use bevy::picking::events::Pointer;
 use bevy::reflect::TypeRegistry;
-use bevy::scene::{DynamicScene, DynamicSceneRoot, SceneInstance};
+use bevy::scene::{DynamicScene, DynamicSceneRoot};
 use bevy::state::condition::in_state;
 use bevy::state::state::OnEnter;
 use bevy::utils::default;
@@ -274,12 +273,12 @@ fn save_scene_to<P: AsRef<Path>>(world: &mut World, path: P) {
     match scene.serialize(&type_registry) {
         Ok(serialized_scene) => {
             File::create(path)
-            .and_then(|mut file| file.write(serialized_scene.as_bytes()))
-            .expect("Error while writing scene to file");
-        },
+                .and_then(|mut file| file.write(serialized_scene.as_bytes()))
+                .expect("Error while writing scene to file");
+        }
         Err(err) => {
             bevy::log::error!("Scene saving error: {}", err);
-        },
+        }
     };
 }
 

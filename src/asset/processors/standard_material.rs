@@ -4,19 +4,17 @@ use bevy::{
         processor::{AssetProcessor, LoadTransformAndSave},
         saver::AssetSaver,
         transformer::IdentityAssetTransformer,
-        AssetApp, AssetLoader, AssetServer, AsyncWriteExt,
+        AssetLoader, AssetServer, AsyncWriteExt,
     },
     ecs::{reflect::AppTypeRegistry, schedule::IntoSystemConfigs, system::Res},
     pbr::StandardMaterial,
     reflect::{
         serde::{ReflectDeserializer, ReflectSerializer},
-        FromReflect,
+        FromReflect, PartialReflect,
     },
     scene::ron::{ser::to_string_pretty, Deserializer},
     utils::default,
 };
-
-use crate::asset::{EditorAsset, EditorAssetSet, EditorAssetSettings};
 
 use serde::de::DeserializeSeed;
 
@@ -24,8 +22,7 @@ pub struct StandardMaterialAssetPlugin;
 
 impl Plugin for StandardMaterialAssetPlugin {
     fn build(&self, app: &mut bevy::app::App) {
-        app.init_asset::<EditorAsset<StandardMaterial>>()
-            .add_systems(Startup, start.in_set(EditorAssetSet::ProcessorRegistration));
+        app.add_systems(Startup, start.before(AssetProcessor::start));
     }
 }
 
@@ -46,7 +43,7 @@ fn start(
             },
         ));
 
-        asset_processor.set_default_processor::<StandardMaterialProcessor>("std.mat");
+        asset_processor.set_default_processor::<StandardMaterialProcessor>("mat");
     }
 }
 
@@ -55,16 +52,16 @@ struct StandardMaterialLoader {
 }
 
 impl AssetLoader for StandardMaterialLoader {
-    type Asset = EditorAsset<StandardMaterial>;
+    type Asset = StandardMaterial;
 
-    type Settings = EditorAssetSettings;
+    type Settings = ();
 
     type Error = std::io::Error;
 
     async fn load(
         &self,
         reader: &mut dyn bevy::asset::io::Reader,
-        settings: &Self::Settings,
+        _settings: &Self::Settings,
         _load_context: &mut bevy::asset::LoadContext<'_>,
     ) -> Result<Self::Asset, Self::Error> {
         let mut bytes = Vec::new();
@@ -75,14 +72,11 @@ impl AssetLoader for StandardMaterialLoader {
         let mut deserializer = Deserializer::from_bytes(&bytes).unwrap();
         let output = reflect_deserializer.deserialize(&mut deserializer).unwrap();
 
-        Ok(EditorAsset::<StandardMaterial> {
-            uuid: settings.uuid,
-            asset: StandardMaterial::from_reflect(output.as_partial_reflect()).unwrap(),
-        })
+        Ok(StandardMaterial::from_reflect(output.as_partial_reflect()).unwrap())
     }
 
     fn extensions(&self) -> &[&str] {
-        &["std.mat"]
+        &["mat"]
     }
 }
 
@@ -91,7 +85,7 @@ struct StandardMaterialSaver {
 }
 
 impl AssetSaver for StandardMaterialSaver {
-    type Asset = EditorAsset<StandardMaterial>;
+    type Asset = StandardMaterial;
 
     type Settings = ();
 
@@ -107,16 +101,14 @@ impl AssetSaver for StandardMaterialSaver {
     ) -> Result<<Self::OutputLoader as AssetLoader>::Settings, Self::Error> {
         let text = {
             let type_registry = self.type_registry.read();
-            let reflect_serializer = ReflectSerializer::new(&asset.asset, &type_registry);
+            let reflect_serializer =
+                ReflectSerializer::new(asset.as_partial_reflect(), &type_registry);
             to_string_pretty(&reflect_serializer, default()).unwrap()
         };
 
         writer.write_all(text.as_bytes()).await?;
 
-        Ok(EditorAssetSettings {
-            uuid: asset.uuid,
-            settings: (),
-        })
+        Ok(())
     }
 }
 
