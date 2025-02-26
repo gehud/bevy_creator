@@ -27,6 +27,7 @@ use bevy::render::{
 use bevy::scene::{DynamicScene, DynamicSceneRoot};
 use bevy::state::condition::in_state;
 use bevy::state::state::OnEnter;
+use bevy::tasks::block_on;
 use bevy::transform::components::Transform;
 use bevy::utils::default;
 use std::f32::consts::PI;

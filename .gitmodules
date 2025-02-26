@@ -1,4 +1,0 @@
-[submodule "vendor/bevy"]
-	path = vendor/bevy
-	url = https://github.com/gehud/bevy.git
-	branch = assets

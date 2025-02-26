@@ -5,7 +5,7 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use bevy::app::{App, Plugin, PreUpdate};
-use bevy::asset::{Assets, UntypedAssetId};
+use bevy::asset::{Asset, Assets, Handle, UntypedAssetId};
 use bevy::ecs::component::Component;
 use bevy::ecs::event::EventReader;
 use bevy::ecs::query::With;
@@ -16,14 +16,16 @@ use bevy::ecs::world::World;
 use bevy::input::keyboard::KeyCode;
 use bevy::input::ButtonInput;
 use bevy::picking::events::Pointer;
-use bevy::reflect::TypeRegistry;
-use bevy::scene::{DynamicScene, DynamicSceneRoot};
+use bevy::reflect::{PartialReflect, Reflect, ReflectMut, TypeRegistry};
+use bevy::scene::serde::SceneSerializer;
+use bevy::scene::{DynamicEntity, DynamicScene, DynamicSceneBuilder, DynamicSceneRoot, Scene};
 use bevy::state::condition::in_state;
 use bevy::state::state::OnEnter;
 use bevy::utils::default;
 use bevy::utils::hashbrown::HashMap;
 use libloading::{Library, Symbol};
 use rfd::FileDialog;
+use serde::Serialize;
 
 use crate::demo_scene::DemoScenePlugin;
 use crate::dock::{EditorDockState, PanelViewer, StandardEditorDockStateTemplate};
