@@ -1,10 +1,9 @@
 use std::any::TypeId;
 use std::error::Error;
 use std::fs::File;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
-use crate::scene::EditorScenePlugin;
 use crate::dock::{EditorDockState, PanelViewer, StandardEditorDockStateTemplate};
 use crate::panel::Panel;
 use crate::panels::assets::AssetsPanel;
@@ -13,13 +12,15 @@ use crate::panels::hierarchy::HierarchyPanel;
 use crate::panels::inspector::InspectorPanel;
 use crate::panels::resources::ResourcesPanel;
 use crate::panels::scene::ScenePanel;
+use crate::scene::{EditorEntity, EditorScenePlugin};
 use crate::window_config::WindowConfigPlugin;
 use crate::EditorSet;
 use bevy::app::{App, Plugin, PreUpdate, Startup};
 use bevy::asset::{Assets, UntypedAssetId};
 use bevy::ecs::component::Component;
+use bevy::ecs::entity::{Entity, EntityHash, EntityHashMap};
 use bevy::ecs::event::EventReader;
-use bevy::ecs::query::With;
+use bevy::ecs::query::{With, Without};
 use bevy::ecs::reflect::AppTypeRegistry;
 use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::system::{Query, Res, ResMut, Resource};
@@ -28,7 +29,9 @@ use bevy::input::keyboard::KeyCode;
 use bevy::input::ButtonInput;
 use bevy::picking::events::Pointer;
 use bevy::reflect::TypeRegistry;
-use bevy::scene::{DynamicScene, DynamicSceneRoot};
+use bevy::scene::ron::{from_str, Deserializer};
+use bevy::scene::serde::SceneDeserializer;
+use bevy::scene::{DynamicScene, DynamicSceneBuilder, DynamicSceneRoot};
 use bevy::utils::default;
 use bevy::utils::hashbrown::HashMap;
 use bevy::window::{PrimaryWindow, Window};
@@ -40,6 +43,7 @@ use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use egui_dock::DockArea;
 use libloading::{Library, Symbol};
 use rfd::FileDialog;
+use serde::de::DeserializeSeed;
 use transform_gizmo_egui::{EnumSet, Gizmo, GizmoMode};
 
 use crate::egui_config::EguiConfigPlugin;
@@ -235,6 +239,53 @@ fn show_ui(world: &mut World) {
     });
 }
 
+fn load_scene_from<P: AsRef<Path>>(world: &mut World, path: P) {
+    let mut text = String::new();
+    let Ok(_) = File::open(path).and_then(|mut file| file.read_to_string(&mut text)) else {
+        bevy::log::error!("Error while reading from scene file");
+        return;
+    };
+
+    let dynamic_scene = {
+        let type_registry = world.resource::<AppTypeRegistry>();
+        let type_registry = type_registry.read();
+
+        let scene_deserializer = SceneDeserializer {
+            type_registry: &type_registry,
+        };
+
+        let mut deserializer = Deserializer::from_str(&text).unwrap();
+
+        scene_deserializer.deserialize(&mut deserializer)
+    };
+
+    let Ok(dynamic_scene) = dynamic_scene else {
+        bevy::log::error!("Failed to deserialize scene");
+        return;
+    };
+
+    let mut entity_map = EntityHashMap::default();
+    let Ok(_) = dynamic_scene.write_to_world(world, &mut entity_map) else {
+        bevy::log::error!("Failed load scene");
+        return;
+    };
+}
+
+fn load_scene(world: &mut World) {
+    let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
+
+    let path = FileDialog::new()
+        .add_filter("Bevy Scene", &["scn"])
+        .set_directory(project_dir)
+        .pick_file();
+
+    let Some(path) = path else {
+        return;
+    };
+
+    load_scene_from(world, path);
+}
+
 fn save_scene(world: &mut World) {
     if world
         .resource::<SelectedProject>()
@@ -256,11 +307,14 @@ fn save_scene(world: &mut World) {
 }
 
 fn save_scene_to<P: AsRef<Path>>(world: &mut World, path: P) {
-    let root = world.query::<&DynamicSceneRoot>().single(world);
-    let scene = world
-        .resource::<Assets<DynamicScene>>()
-        .get(root.id())
-        .unwrap();
+    let entities = world
+        .query_filtered::<Entity, Without<EditorEntity>>()
+        .iter(world)
+        .collect::<Vec<_>>();
+
+    let scene = DynamicSceneBuilder::from_world(&world)
+        .extract_entities(entities.iter().cloned())
+        .build();
 
     let type_registry = world.resource::<AppTypeRegistry>();
     let type_registry = type_registry.read();
@@ -285,17 +339,22 @@ fn save_scene_as(world: &mut World) {
         .set_directory(project_dir)
         .save_file();
 
-    if path.is_none() {
+    let Some(path) = path else {
         return;
-    }
+    };
 
-    world.resource_mut::<SelectedProject>().active_scene_path = path.clone();
-    save_scene_to(world, path.unwrap());
+    world.resource_mut::<SelectedProject>().active_scene_path = Some(path.clone());
+    save_scene_to(world, path);
 }
 
 fn draw_menu(editor_state: &mut EditorState, world: &mut World, ui: &mut egui::Ui) {
     ui.horizontal(|ui| {
         ui.menu_button("File", |ui| {
+            if ui.button("Open").clicked() {
+                load_scene(world);
+                ui.close_menu();
+            }
+
             if ui.button("Save").clicked() {
                 save_scene(world);
                 ui.close_menu();

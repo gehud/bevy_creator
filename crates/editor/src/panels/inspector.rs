@@ -1,6 +1,9 @@
-use bevy::ecs::{
-    reflect::{AppTypeRegistry, ReflectComponent},
-    world::{Mut, World},
+use bevy::{
+    ecs::{
+        reflect::{AppTypeRegistry, ReflectComponent},
+        world::{CommandQueue, FromWorld, Mut, World},
+    },
+    reflect::prelude::ReflectDefault,
 };
 use bevy_egui::egui::{Align, Layout, ScrollArea, Ui};
 use bevy_inspector_egui::bevy_inspector::{
@@ -71,24 +74,51 @@ fn entity_ui(state: &mut InspectorState, world: &mut World, ui: &mut Ui) {
                         let type_registry = world.resource::<AppTypeRegistry>().clone();
                         let type_registry = type_registry.read();
 
-                        let component_ids = type_registry
+                        let components = type_registry
                             .iter()
-                            .map(|registration| registration.data::<ReflectComponent>())
-                            .filter(|component| component.is_some())
-                            .map(|component| component.unwrap().register_component(world))
+                            .map(|registration| {
+                                (
+                                    registration.data::<ReflectComponent>(),
+                                    registration.data::<ReflectDefault>(),
+                                )
+                            })
+                            .filter(|(component, default)| component.is_some() && default.is_some())
+                            .map(|(component, default)| {
+                                (
+                                    component.unwrap().register_component(world),
+                                    component.unwrap(),
+                                    default.unwrap(),
+                                )
+                            })
                             .collect::<Vec<_>>();
 
-                        let components = component_ids
+                        let components = components
                             .iter()
-                            .map(|id| world.components().get_info(*id).unwrap())
-                            .filter(|info| {
-                                info.name()
-                                    .to_lowercase()
+                            .map(|(id, component, default)| {
+                                (
+                                    world.components().get_info(*id).unwrap().name().to_string(),
+                                    component,
+                                    default,
+                                )
+                            })
+                            .filter(|(info, _, _)| {
+                                info.to_lowercase()
                                     .contains(&state.component_filter.to_lowercase())
-                            });
+                            })
+                            .collect::<Vec<_>>();
 
-                        for component in components {
-                            if ui.button(component.name()).clicked() {
+                        for (name, component, default) in components {
+                            if ui.button(name).clicked() {
+                                for entity in state.selected_entities.iter() {
+                                    let mut entity = world.entity_mut(entity);
+                                    let data = default.default();
+                                    component.insert(
+                                        &mut entity,
+                                        data.as_partial_reflect(),
+                                        &type_registry,
+                                    );
+                                }
+
                                 ui.close_menu();
                             }
                         }

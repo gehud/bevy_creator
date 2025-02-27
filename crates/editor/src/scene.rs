@@ -3,7 +3,10 @@ use bevy::asset::Assets;
 use bevy::color::{Gray, LinearRgba};
 use bevy::core::Name;
 use bevy::core_pipeline::core_3d::Camera3d;
+use bevy::ecs::component::Component;
+use bevy::ecs::entity::Entity;
 use bevy::ecs::schedule::IntoSystemConfigs;
+use bevy::ecs::system::Query;
 use bevy::ecs::{
     reflect::AppTypeRegistry,
     system::{Commands, Res, ResMut},
@@ -38,7 +41,7 @@ impl Plugin for EditorScenePlugin {
         app.init_gizmo_group::<EditorGizmosGroup>()
             .add_systems(
                 Startup,
-                (setup_editor_scene, init_scene, setup_gizmos).chain(),
+                (setup_editor_scene, mark_editor_entities, setup_gizmos).chain(),
             )
             .add_systems(Update, draw_gizmo);
     }
@@ -47,17 +50,6 @@ impl Plugin for EditorScenePlugin {
 const BOX_SIZE: f32 = 2.0;
 const BOX_THICKNESS: f32 = 0.15;
 const BOX_OFFSET: f32 = (BOX_SIZE + BOX_THICKNESS) / 2.0;
-
-fn init_scene(
-    mut commands: Commands,
-    mut scenes: ResMut<Assets<DynamicScene>>,
-    app_type_registry: Res<AppTypeRegistry>,
-) {
-    let mut scene_world = World::new();
-    scene_world.insert_resource(app_type_registry.clone());
-    let scene = DynamicScene::from_world(&scene_world);
-    commands.spawn((DynamicSceneRoot(scenes.add(scene)), Name::new("Untitled")));
-}
 
 fn setup_editor_scene(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let mut image = Image::new_fill(
@@ -83,6 +75,15 @@ fn setup_editor_scene(mut commands: Commands, mut images: ResMut<Assets<Image>>)
         },
         MainCamera,
     ));
+}
+
+#[derive(Component)]
+pub struct EditorEntity;
+
+fn mark_editor_entities(entities: Query<Entity>, mut commands: Commands) {
+    for entity in entities.iter() {
+        commands.entity(entity).insert(EditorEntity);
+    }
 }
 
 fn setup_gizmos(mut config_store: ResMut<GizmoConfigStore>) {

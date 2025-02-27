@@ -1,12 +1,19 @@
-use bevy::ecs::{
-    query::With,
-    reflect::AppTypeRegistry,
-    world::{Mut, World},
+use bevy::ecs::query::Without;
+use bevy::scene::SceneInstance;
+use bevy::{
+    ecs::{
+        entity::Entity,
+        query::With,
+        reflect::AppTypeRegistry,
+        world::{Mut, World},
+    },
+    hierarchy::{BuildChildren, Parent},
+    scene,
 };
 use bevy_egui::egui::Ui;
 use bevy_inspector_egui::bevy_inspector::hierarchy::Hierarchy;
-use bevy::scene::SceneInstance;
 
+use crate::scene::EditorEntity;
 use crate::{
     editor::{InspectorSelection, InspectorState},
     panel::Panel,
@@ -21,6 +28,12 @@ impl Panel for HierarchyPanel {
     }
 
     fn ui(&mut self, world: &mut World, ui: &mut Ui) {
+        if ui.button("Create Entity").clicked() {
+            world.spawn_empty();
+        }
+
+        ui.separator();
+
         world.resource_scope(|world, mut state: Mut<InspectorState>| {
             let type_registry = world.resource::<AppTypeRegistry>().clone();
             let type_registry = type_registry.read();
@@ -33,7 +46,7 @@ impl Panel for HierarchyPanel {
                 shortcircuit_entity: None,
                 extra_state: &mut (),
             }
-            .show::<With<SceneInstance>>(ui);
+            .show::<Without<EditorEntity>>(ui);
 
             if selected {
                 state.selection = InspectorSelection::Entities;
