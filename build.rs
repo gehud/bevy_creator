@@ -7,8 +7,6 @@ use std::path::PathBuf;
 fn main() {
     println!("cargo:rerun-if-changed=crates");
     copy_to_to_build("templates");
-    copy_to_to_build("assets/materials");
-    copy_to_to_build("assets/models");
     copy_to_to_build("crates/bootstrap");
 }
 

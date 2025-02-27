@@ -35,6 +35,7 @@ enum EditorSet {
 define_app_config!();
 
 const PROJECT_CACHE_DIR: &'static str = "/.bevy";
+const PROJECT_ASSETS_DIR: &'static str = "/assets";
 const PROJECT_PROCESSED_ASSET_DIR: &'static str = "/imported";
 
 fn main() {
@@ -57,7 +58,7 @@ fn main() {
                 })
                 .set(AssetPlugin {
                     mode: AssetMode::Processed,
-                    file_path: project_dir.clone(),
+                    file_path: project_dir.clone() + PROJECT_ASSETS_DIR,
                     processed_file_path: project_dir.clone()
                         + PROJECT_CACHE_DIR
                         + PROJECT_PROCESSED_ASSET_DIR,
