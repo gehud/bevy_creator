@@ -1,0 +1,14 @@
+[package]
+name = "bevy_helper"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["rlib", "dylib"]
+
+[dependencies]
+bevy_app = "0.15"
+bevy_ecs = "0.15"
+bevy_winit = "0.15"
+image = "0.25"
+winit = "0.30"

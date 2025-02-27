@@ -1,10 +1,8 @@
-use bevy::app::{App, Plugin, Update};
-use bevy::asset::{AssetServer, Assets};
+use bevy::app::{App, Plugin, Startup, Update};
+use bevy::asset::Assets;
 use bevy::color::{Gray, LinearRgba};
 use bevy::core::Name;
 use bevy::core_pipeline::core_3d::Camera3d;
-use bevy::ecs::component::Component;
-use bevy::ecs::reflect::ReflectComponent;
 use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::{
     reflect::AppTypeRegistry,
@@ -17,37 +15,32 @@ use bevy::gizmos::AppGizmoBuilder;
 use bevy::image::Image;
 use bevy::math::UVec2;
 use bevy::math::{Quat, Vec2, Vec3};
-use bevy::pbr::{MeshMaterial3d, StandardMaterial};
 use bevy::reflect::Reflect;
 use bevy::render::{
     camera::Camera,
-    mesh::{Mesh, Mesh3d},
     render_resource::{TextureDimension, TextureFormat, TextureUsages},
 };
 use bevy::scene::{DynamicScene, DynamicSceneRoot};
-use bevy::state::condition::in_state;
-use bevy::state::state::OnEnter;
-use bevy::tasks::block_on;
 use bevy::transform::components::Transform;
 use bevy::utils::default;
 use std::f32::consts::PI;
 
-use crate::{editor::MainCamera, selection::PickSelection, AppState};
+use crate::editor::MainCamera;
 
 // We can create our own gizmo config group!
 #[derive(Default, Reflect, GizmoConfigGroup)]
 struct EditorGizmosGroup;
 
-pub struct DemoScenePlugin;
+pub struct EditorScenePlugin;
 
-impl Plugin for DemoScenePlugin {
+impl Plugin for EditorScenePlugin {
     fn build(&self, app: &mut App) {
         app.init_gizmo_group::<EditorGizmosGroup>()
             .add_systems(
-                OnEnter(AppState::Editor),
+                Startup,
                 (setup_editor_scene, init_scene, setup_gizmos).chain(),
             )
-            .add_systems(Update, draw_gizmo.run_if(in_state(AppState::Editor)));
+            .add_systems(Update, draw_gizmo);
     }
 }
 
@@ -55,30 +48,12 @@ const BOX_SIZE: f32 = 2.0;
 const BOX_THICKNESS: f32 = 0.15;
 const BOX_OFFSET: f32 = (BOX_SIZE + BOX_THICKNESS) / 2.0;
 
-#[derive(Component, Reflect)]
-#[reflect(Component)]
-struct EditorMateralTarget;
-
-#[derive(Component, Reflect)]
-#[reflect(Component)]
-struct EditorMeshTarget;
-
 fn init_scene(
     mut commands: Commands,
     mut scenes: ResMut<Assets<DynamicScene>>,
     app_type_registry: Res<AppTypeRegistry>,
-    asset_server: Res<AssetServer>,
 ) {
     let mut scene_world = World::new();
-
-    scene_world.spawn((
-        Mesh3d(asset_server.load::<Mesh>("models/cube.glb#Mesh0/Primitive0")),
-        MeshMaterial3d(asset_server.load::<StandardMaterial>("materials/test.mat")),
-        EditorMateralTarget,
-        EditorMeshTarget,
-        PickSelection::default(),
-    ));
-
     scene_world.insert_resource(app_type_registry.clone());
     let scene = DynamicScene::from_world(&scene_world);
     commands.spawn((DynamicSceneRoot(scenes.add(scene)), Name::new("Untitled")));

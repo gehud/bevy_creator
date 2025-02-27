@@ -4,8 +4,19 @@ use std::fs::File;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 
-use bevy::app::{App, Plugin, PreUpdate};
-use bevy::asset::{Asset, Assets, Handle, UntypedAssetId};
+use crate::scene::EditorScenePlugin;
+use crate::dock::{EditorDockState, PanelViewer, StandardEditorDockStateTemplate};
+use crate::panel::Panel;
+use crate::panels::assets::AssetsPanel;
+use crate::panels::explorer::ExplorerPanel;
+use crate::panels::hierarchy::HierarchyPanel;
+use crate::panels::inspector::InspectorPanel;
+use crate::panels::resources::ResourcesPanel;
+use crate::panels::scene::ScenePanel;
+use crate::window_config::WindowConfigPlugin;
+use crate::EditorSet;
+use bevy::app::{App, Plugin, PreUpdate, Startup};
+use bevy::asset::{Assets, UntypedAssetId};
 use bevy::ecs::component::Component;
 use bevy::ecs::event::EventReader;
 use bevy::ecs::query::With;
@@ -16,28 +27,10 @@ use bevy::ecs::world::World;
 use bevy::input::keyboard::KeyCode;
 use bevy::input::ButtonInput;
 use bevy::picking::events::Pointer;
-use bevy::reflect::{PartialReflect, Reflect, ReflectMut, TypeRegistry};
-use bevy::scene::serde::SceneSerializer;
-use bevy::scene::{DynamicEntity, DynamicScene, DynamicSceneBuilder, DynamicSceneRoot, Scene};
-use bevy::state::condition::in_state;
-use bevy::state::state::OnEnter;
+use bevy::reflect::TypeRegistry;
+use bevy::scene::{DynamicScene, DynamicSceneRoot};
 use bevy::utils::default;
 use bevy::utils::hashbrown::HashMap;
-use libloading::{Library, Symbol};
-use rfd::FileDialog;
-use serde::Serialize;
-
-use crate::demo_scene::DemoScenePlugin;
-use crate::dock::{EditorDockState, PanelViewer, StandardEditorDockStateTemplate};
-use crate::panel::Panel;
-use crate::panels::assets::AssetsPanel;
-use crate::panels::explorer::ExplorerPanel;
-use crate::panels::hierarchy::HierarchyPanel;
-use crate::panels::inspector::InspectorPanel;
-use crate::panels::resources::ResourcesPanel;
-use crate::panels::scene::ScenePanel;
-use crate::window_config::WindowConfigPlugin;
-use crate::{AppSet, AppState};
 use bevy::window::{PrimaryWindow, Window};
 use bevy_egui::egui::panel::TopBottomSide;
 use bevy_egui::egui::{Id, TopBottomPanel};
@@ -45,6 +38,8 @@ use bevy_egui::{egui, EguiContext};
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use egui_dock::DockArea;
+use libloading::{Library, Symbol};
+use rfd::FileDialog;
 use transform_gizmo_egui::{EnumSet, Gizmo, GizmoMode};
 
 use crate::egui_config::EguiConfigPlugin;
@@ -72,19 +67,17 @@ impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
         app.add_plugins(WindowConfigPlugin)
             .add_plugins(EguiConfigPlugin)
-            .add_plugins(DemoScenePlugin)
+            .add_plugins(EditorScenePlugin)
             .add_plugins(DefaultInspectorConfigPlugin)
             .insert_resource(EditorState::new())
             .insert_resource(InspectorState::new())
             .insert_resource(GizmoState::new())
-            .init_resource::<SelectedProject>()
-            .add_systems(OnEnter(AppState::Editor), (setup_window, init_panels))
+            .add_systems(Startup, (setup_window, init_panels))
             .add_systems(
                 PreUpdate,
                 (handle_selection, set_gizmo_mode, show_ui)
                     .chain()
-                    .in_set(AppSet::Egui)
-                    .run_if(in_state(AppState::Editor)),
+                    .in_set(EditorSet::Egui),
             );
     }
 }

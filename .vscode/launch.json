@@ -5,11 +5,30 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(Windows) Launch",
+            "name": "(Windows) Launch 'BevyHub'",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/BevyHub.exe",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/target/debug",
+            "environment": [
+                {
+                    "name": "PATH",
+                    "value": "%USERPROFILE%/.rustup/toolchains/stable-x86_64-pc-windows-msvc/bin;%PATH%"
+                }
+            ],
+            "console": "internalConsole",
+            "preLaunchTask": "rust: cargo build"
+        },
+        {
+            "name": "(Windows) Launch 'BevyEditor'",
             "type": "cppvsdbg",
             "request": "launch",
             "program": "${workspaceFolder}/target/debug/BevyEditor.exe",
-            "args": [],
+            "args": [
+                "C:/Development/bevy_project"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}/target/debug",
             "environment": [

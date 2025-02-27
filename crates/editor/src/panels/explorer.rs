@@ -25,13 +25,23 @@ impl Panel for ExplorerPanel {
     }
 }
 
-const EXPLORER_EXCLUDE: &'static [&'static str] =
+const EXPLORER_FILE_EXCLUDE: &'static [&'static str] =
     &[".bevy", ".cargo", "Cargo.toml", "Cargo.lock", "target"];
+
+const EXPLORER_EXT_EXCLUDE: &'static [&'static str] = &[
+    "meta"
+];
 
 impl ExplorerPanel {
     fn draw_recursive(&self, path: &PathBuf, ui: &mut Ui) {
-        if EXPLORER_EXCLUDE.contains(&path.file_name().unwrap().to_string_lossy().as_str()) {
+        if EXPLORER_FILE_EXCLUDE.contains(&path.file_name().unwrap().to_string_lossy().as_str()) {
             return;
+        }
+
+        if let Some(extension) = path.extension() {
+            if EXPLORER_EXT_EXCLUDE.contains(&extension.to_string_lossy().as_str()) {
+                return;
+            }
         }
 
         if !path.is_dir() {
