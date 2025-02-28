@@ -25,3 +25,4 @@ serde_json = "1.0"
 
 bevy_config = { path = "../config" }
 bevy_helper = { path = "../helper" }
+bevy_assets = { path = "../assets" }

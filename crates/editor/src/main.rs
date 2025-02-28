@@ -8,6 +8,7 @@ use bevy::picking::{mesh_picking::MeshPickingPlugin, PickSet};
 use bevy::utils::default;
 use bevy::window::{PresentMode, Window, WindowPlugin};
 use bevy::DefaultPlugins;
+use bevy_assets::CustomAssetsPlugin;
 use bevy_config::define_app_config;
 use bevy_egui::{EguiPlugin, EguiPreUpdateSet};
 use bevy_helper::winit::WindowIconPlugin;
@@ -79,6 +80,7 @@ fn main() {
         .add_plugins(SelectionPlugin)
         .add_plugins(EditorPlugin)
         .add_plugins(EditorAssetPlugin)
+        .add_plugins(CustomAssetsPlugin)
         .insert_resource(SelectedProject {
             dir: Some(project_dir.into()),
             ..default()

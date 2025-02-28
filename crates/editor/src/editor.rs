@@ -27,8 +27,10 @@ use bevy::ecs::system::{Query, Res, ResMut, Resource};
 use bevy::ecs::world::World;
 use bevy::input::keyboard::KeyCode;
 use bevy::input::ButtonInput;
+use bevy::pbr::{MeshMaterial3d, StandardMaterial};
 use bevy::picking::events::Pointer;
 use bevy::reflect::TypeRegistry;
+use bevy::render::mesh::Mesh3d;
 use bevy::scene::ron::{from_str, Deserializer};
 use bevy::scene::serde::SceneDeserializer;
 use bevy::scene::{DynamicScene, DynamicSceneBuilder, DynamicSceneRoot};
@@ -239,9 +241,9 @@ fn show_ui(world: &mut World) {
     });
 }
 
-fn load_scene_from<P: AsRef<Path>>(world: &mut World, path: P) {
+fn load_scene_from(world: &mut World, path: PathBuf) {
     let mut text = String::new();
-    let Ok(_) = File::open(path).and_then(|mut file| file.read_to_string(&mut text)) else {
+    let Ok(_) = File::open(path.clone()).and_then(|mut file| file.read_to_string(&mut text)) else {
         bevy::log::error!("Error while reading from scene file");
         return;
     };
@@ -269,6 +271,8 @@ fn load_scene_from<P: AsRef<Path>>(world: &mut World, path: P) {
         bevy::log::error!("Failed load scene");
         return;
     };
+
+    world.resource_mut::<SelectedProject>().active_scene_path = Some(path);
 }
 
 fn load_scene(world: &mut World) {
@@ -306,29 +310,35 @@ fn save_scene(world: &mut World) {
     save_scene_to(world, path);
 }
 
-fn save_scene_to<P: AsRef<Path>>(world: &mut World, path: P) {
+fn save_scene_to(world: &mut World, path: PathBuf) {
     let entities = world
         .query_filtered::<Entity, Without<EditorEntity>>()
         .iter(world)
         .collect::<Vec<_>>();
 
     let scene = DynamicSceneBuilder::from_world(&world)
+        .deny_component::<Mesh3d>()
+        .deny_component::<MeshMaterial3d<StandardMaterial>>()
         .extract_entities(entities.iter().cloned())
         .build();
 
-    let type_registry = world.resource::<AppTypeRegistry>();
-    let type_registry = type_registry.read();
+    {
+        let type_registry = world.resource::<AppTypeRegistry>();
+        let type_registry = type_registry.read();
 
-    match scene.serialize(&type_registry) {
-        Ok(serialized_scene) => {
-            File::create(path)
-                .and_then(|mut file| file.write(serialized_scene.as_bytes()))
-                .expect("Error while writing scene to file");
-        }
-        Err(err) => {
-            bevy::log::error!("Scene saving error: {}", err);
-        }
-    };
+        match scene.serialize(&type_registry) {
+            Ok(serialized_scene) => {
+                File::create(path.clone())
+                    .and_then(|mut file| file.write(serialized_scene.as_bytes()))
+                    .expect("Error while writing scene to file");
+            }
+            Err(err) => {
+                bevy::log::error!("Scene saving error: {}", err);
+            }
+        };
+    }
+
+    world.resource_mut::<SelectedProject>().active_scene_path = Some(path);
 }
 
 fn save_scene_as(world: &mut World) {
@@ -343,7 +353,6 @@ fn save_scene_as(world: &mut World) {
         return;
     };
 
-    world.resource_mut::<SelectedProject>().active_scene_path = Some(path.clone());
     save_scene_to(world, path);
 }
 

@@ -5,3 +5,11 @@ edition = "2021"
 
 [lib]
 crate-type = ["rlib", "dylib"]
+
+[dependencies]
+bevy_ecs = { version = "0.15", features = ["serialize"] }
+bevy_reflect = { version = "0.15" }
+bevy_render = { version = "0.15" }
+bevy_pbr = { version = "0.15" }
+bevy_asset = { version = "0.15" }
+bevy_app = { version = "0.15" }

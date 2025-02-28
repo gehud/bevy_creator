@@ -1,5 +1,5 @@
 use bevy::app::{App, Plugin, Startup, Update};
-use bevy::asset::Assets;
+use bevy::asset::{AssetServer, Assets};
 use bevy::color::{Gray, LinearRgba};
 use bevy::core::Name;
 use bevy::core_pipeline::core_3d::Camera3d;
@@ -19,6 +19,7 @@ use bevy::image::Image;
 use bevy::math::UVec2;
 use bevy::math::{Quat, Vec2, Vec3};
 use bevy::reflect::Reflect;
+use bevy::render::mesh::Mesh;
 use bevy::render::{
     camera::Camera,
     render_resource::{TextureDimension, TextureFormat, TextureUsages},
@@ -51,7 +52,7 @@ const BOX_SIZE: f32 = 2.0;
 const BOX_THICKNESS: f32 = 0.15;
 const BOX_OFFSET: f32 = (BOX_SIZE + BOX_THICKNESS) / 2.0;
 
-fn setup_editor_scene(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
+fn setup_editor_scene(asset_server: Res<AssetServer>, mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let mut image = Image::new_fill(
         default(),
         TextureDimension::D2,
