@@ -143,7 +143,6 @@ fn update_viewport(
     In(viewport_rect): In<Rect>,
     mut images: ResMut<Assets<Image>>,
     primary_window: Query<&mut Window, With<PrimaryWindow>>,
-    egui_settings: Query<&EguiContextSettings>,
     mut cameras: Query<&mut Camera, With<MainCamera>>,
 ) {
     let cam = cameras.single_mut();
@@ -152,13 +151,10 @@ fn update_viewport(
         return;
     };
 
-    let scale_factor = window.scale_factor() * egui_settings.single().scale_factor;
-
-    let viewport_pos = viewport_rect.left_top().to_vec2() * scale_factor;
-    let viewport_size = viewport_rect.size() * scale_factor;
+    let viewport_pos = viewport_rect.left_top().to_vec2();
+    let viewport_size = viewport_rect.size();
 
     let physical_position = UVec2::new(viewport_pos.x as u32, viewport_pos.y as u32);
-    // let physical_position = UVec2::ZERO;
     let physical_size = UVec2::new(viewport_size.x as u32, viewport_size.y as u32);
 
     // The desired viewport rectangle at its offset in "physical pixel space"

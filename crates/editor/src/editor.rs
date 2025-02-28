@@ -39,10 +39,10 @@ use bevy::utils::hashbrown::HashMap;
 use bevy::window::{PrimaryWindow, Window};
 use bevy_egui::egui::panel::TopBottomSide;
 use bevy_egui::egui::{Id, TopBottomPanel};
-use bevy_egui::{egui, EguiContext, EguiContexts};
+use bevy_egui::{egui, EguiContext, EguiContextSettings, EguiContexts};
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
-use egui_dock::DockArea;
+use egui_dock::{ButtonsStyle, DockArea};
 use libloading::{Library, Symbol};
 use rfd::FileDialog;
 use serde::de::DeserializeSeed;
@@ -78,7 +78,7 @@ impl Plugin for EditorPlugin {
             .insert_resource(EditorState::new())
             .insert_resource(InspectorState::new())
             .insert_resource(GizmoState::new())
-            .add_systems(Startup, (setup_window, init_panels))
+            .add_systems(Startup, init_panels)
             .add_systems(
                 PreUpdate,
                 (handle_selection, set_gizmo_mode, show_ui)
@@ -122,8 +122,11 @@ impl EditorState {
             panels: &mut self.panels,
         };
 
+        let dock_style = egui_dock::Style::from_egui(ctx.style().as_ref());
+        
         DockArea::new(&mut self.docking)
-            .style(egui_dock::Style::from_egui(ctx.style().as_ref()))
+            .style(dock_style)
+            .show_leaf_collapse_buttons(false)
             .show(ctx, &mut panel_viewer);
 
         ctx.request_repaint();
@@ -189,11 +192,6 @@ fn init_panels(mut state: ResMut<EditorState>) {
     state.init_panel::<InspectorPanel>();
     state.init_panel::<ResourcesPanel>();
     state.init_panel::<ScenePanel>();
-}
-
-fn setup_window(mut windows: Query<&mut Window, With<PrimaryWindow>>) {
-    let mut window = windows.single_mut();
-    window.title = "BevyEditor".into();
 }
 
 fn handle_selection(

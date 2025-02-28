@@ -27,10 +27,8 @@ impl Plugin for WindowConfigPlugin {
 pub struct MainWindowConfig {
     pub mode: WindowMode,
     pub position: WindowPosition,
-    pub width: u32,
-    pub height: u32,
+    pub resolution: WindowResolution,
     pub maximized: bool,
-    pub scale_factor: f32,
 }
 
 fn restore_window_state(mut primary_window: Query<&mut Window, With<PrimaryWindow>>) {
@@ -38,10 +36,7 @@ fn restore_window_state(mut primary_window: Query<&mut Window, With<PrimaryWindo
 
     if let Some(config) = load_window_config() {
         bevy::log::info!("Loaded \"window\" config file");
-        window.resolution = WindowResolution::new(
-            config.width as f32 / config.scale_factor as f32,
-            config.height as f32 / config.scale_factor as f32,
-        );
+        window.resolution = config.resolution;
         window.mode = config.mode;
         window.position = config.position;
         window.set_maximized(config.maximized);
@@ -77,9 +72,7 @@ fn save_window_state(window: &Window, maximized: bool) {
     let config = MainWindowConfig {
         mode: window.mode.clone(),
         position: window.position.clone(),
-        width: window.physical_width(),
-        height: window.physical_height(),
-        scale_factor: window.resolution.base_scale_factor(),
+        resolution: window.resolution.clone(),
         maximized,
     };
 

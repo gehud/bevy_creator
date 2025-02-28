@@ -50,7 +50,6 @@ fn main() {
             DefaultPlugins
                 .set(WindowPlugin {
                     primary_window: Some(Window {
-                        present_mode: PresentMode::AutoNoVsync,
                         title: "BevyEditor".into(),
                         resolution: (1280., 720.).into(),
                         ..default()
