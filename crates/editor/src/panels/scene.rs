@@ -5,13 +5,11 @@ use bevy::ecs::{
     system::{In, Local, Query, Res, ResMut, RunSystemOnce},
     world::{Mut, World},
 };
-use bevy_egui::{
-    egui::{Rect, TextureId, Ui, Vec2 as EguiVec2},
-    EguiContextSettings, EguiContexts,
-};
 use bevy::image::Image;
 use bevy::math::{Quat, UVec2, Vec2, Vec3};
-use bevy::picking::pointer::{Location, PointerAction, PointerId, PointerInput};
+use bevy::picking::pointer::{
+    Location, PointerAction, PointerButton, PointerId, PointerInput, PressDirection,
+};
 use bevy::render::{
     camera::{Camera, CameraProjection, NormalizedRenderTarget, Projection},
     render_resource::Extent3d,
@@ -19,10 +17,16 @@ use bevy::render::{
 use bevy::transform::components::{GlobalTransform, Transform};
 use bevy::utils::default;
 use bevy::window::{PrimaryWindow, Window};
+use bevy_egui::egui::{PointerButton as EguiPointerButton, Sense};
+use bevy_egui::{
+    egui::{Rect, TextureId, Ui, Vec2 as EguiVec2},
+    EguiContextSettings, EguiContexts,
+};
 use transform_gizmo_egui::{math::Transform as GizmoTransform, GizmoConfig, GizmoOrientation};
 
+use crate::camera::EditorCamera;
 use crate::{
-    editor::{GizmoState, InspectorState, MainCamera},
+    editor::{GizmoState, InspectorState},
     panel::Panel,
     transform_gizmo_ext::GizmoNewExt,
 };
@@ -48,13 +52,111 @@ impl Panel for ScenePanel {
 
         let (image_handle, texture_id, size) = world.run_system_once(draw_image).unwrap();
 
-        let viewport_response = ui.image((texture_id, EguiVec2::new(size.x, size.y)));
+        let viewport_response = ui.image((texture_id, EguiVec2::new(size.x, size.y))).interact(Sense::click());
 
+        // Picking support.
         if let Some(pointer_pos_window) = viewport_response.hover_pos() {
             let pos = pointer_pos_window - viewport_response.rect.min;
-            world
-                .run_system_once_with((image_handle, pos), send_mouse_move)
-                .unwrap();
+
+            ui.input(|input| {
+                let mut delta = input.pointer.motion();
+                let delta = delta.get_or_insert_default();
+
+                world.send_event(PointerInput {
+                    pointer_id: PointerId::Mouse,
+                    location: Location {
+                        target: NormalizedRenderTarget::Image(image_handle.clone()),
+                        position: Vec2::new(pos.x, pos.y),
+                    },
+                    action: PointerAction::Moved {
+                        delta: Vec2::new(delta.x, delta.y),
+                    },
+                });
+
+                if input.pointer.button_pressed(EguiPointerButton::Primary) {
+                    world.send_event(PointerInput {
+                        pointer_id: PointerId::Mouse,
+                        location: Location {
+                            target: NormalizedRenderTarget::Image(image_handle.clone()),
+                            position: Vec2::new(pos.x, pos.y),
+                        },
+                        action: PointerAction::Pressed {
+                            direction: PressDirection::Down,
+                            button: PointerButton::Primary,
+                        },
+                    });
+                } 
+                
+                if input.pointer.button_pressed(EguiPointerButton::Secondary) {
+                    world.send_event(PointerInput {
+                        pointer_id: PointerId::Mouse,
+                        location: Location {
+                            target: NormalizedRenderTarget::Image(image_handle.clone()),
+                            position: Vec2::new(pos.x, pos.y),
+                        },
+                        action: PointerAction::Pressed {
+                            direction: PressDirection::Down,
+                            button: PointerButton::Secondary,
+                        },
+                    });
+                } 
+                
+                if input.pointer.button_pressed(EguiPointerButton::Middle) {
+                    world.send_event(PointerInput {
+                        pointer_id: PointerId::Mouse,
+                        location: Location {
+                            target: NormalizedRenderTarget::Image(image_handle.clone()),
+                            position: Vec2::new(pos.x, pos.y),
+                        },
+                        action: PointerAction::Pressed {
+                            direction: PressDirection::Down,
+                            button: PointerButton::Middle,
+                        },
+                    });
+                }
+
+                if input.pointer.button_released(EguiPointerButton::Primary) {
+                    world.send_event(PointerInput {
+                        pointer_id: PointerId::Mouse,
+                        location: Location {
+                            target: NormalizedRenderTarget::Image(image_handle.clone()),
+                            position: Vec2::new(pos.x, pos.y),
+                        },
+                        action: PointerAction::Pressed {
+                            direction: PressDirection::Up,
+                            button: PointerButton::Primary,
+                        },
+                    });
+                } 
+                
+                if input.pointer.button_released(EguiPointerButton::Secondary) {
+                    world.send_event(PointerInput {
+                        pointer_id: PointerId::Mouse,
+                        location: Location {
+                            target: NormalizedRenderTarget::Image(image_handle.clone()),
+                            position: Vec2::new(pos.x, pos.y),
+                        },
+                        action: PointerAction::Pressed {
+                            direction: PressDirection::Up,
+                            button: PointerButton::Secondary,
+                        },
+                    });
+                } 
+                
+                if input.pointer.button_released(EguiPointerButton::Middle) {
+                    world.send_event(PointerInput {
+                        pointer_id: PointerId::Mouse,
+                        location: Location {
+                            target: NormalizedRenderTarget::Image(image_handle.clone()),
+                            position: Vec2::new(pos.x, pos.y),
+                        },
+                        action: PointerAction::Pressed {
+                            direction: PressDirection::Up,
+                            button: PointerButton::Middle,
+                        },
+                    });
+                }
+            });
         }
 
         world.resource_scope(|world, mut gizmo_state: Mut<GizmoState>| {
@@ -95,7 +197,7 @@ impl Panel for ScenePanel {
                 .collect::<Vec<_>>();
 
             let (cam_transform, projection) = world
-                .query_filtered::<(&GlobalTransform, &Projection), With<MainCamera>>()
+                .query_filtered::<(&GlobalTransform, &Projection), With<EditorCamera>>()
                 .single(world);
 
             let view_matrix = cam_transform.compute_matrix().inverse();
@@ -143,7 +245,7 @@ fn update_viewport(
     In(viewport_rect): In<Rect>,
     mut images: ResMut<Assets<Image>>,
     primary_window: Query<&mut Window, With<PrimaryWindow>>,
-    mut cameras: Query<&mut Camera, With<MainCamera>>,
+    mut cameras: Query<&mut Camera, With<EditorCamera>>,
 ) {
     let cam = cameras.single_mut();
 
@@ -179,7 +281,7 @@ fn update_viewport(
 }
 
 fn draw_image(
-    cameras: Query<&Camera, With<MainCamera>>,
+    cameras: Query<&Camera, With<EditorCamera>>,
     mut egui_contexts: EguiContexts,
     mut texture_id: Local<Option<TextureId>>,
     images: Res<Assets<Image>>,
@@ -194,18 +296,4 @@ fn draw_image(
         texture_id,
         EguiVec2::new(size.x, size.y),
     )
-}
-
-fn send_mouse_move(
-    In((image_handle, pos)): In<(Handle<Image>, EguiVec2)>,
-    mut pointer_input: EventWriter<PointerInput>,
-) {
-    pointer_input.send(PointerInput {
-        pointer_id: PointerId::Mouse,
-        location: Location {
-            target: NormalizedRenderTarget::Image(image_handle),
-            position: Vec2::new(pos.x, pos.y),
-        },
-        action: PointerAction::Moved { delta: Vec2::ZERO },
-    });
 }

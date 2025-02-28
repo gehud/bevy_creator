@@ -27,6 +27,8 @@ mod scene;
 mod selection;
 mod transform_gizmo_ext;
 mod window_config;
+mod camera;
+mod grid;
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 enum EditorSet {

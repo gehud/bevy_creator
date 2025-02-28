@@ -51,9 +51,6 @@ use transform_gizmo_egui::{EnumSet, Gizmo, GizmoMode};
 use crate::egui_config::EguiConfigPlugin;
 use crate::selection::{Deselect, Select};
 
-#[derive(Component)]
-pub struct MainCamera;
-
 #[derive(Eq, PartialEq)]
 pub enum InspectorSelection {
     Entities,

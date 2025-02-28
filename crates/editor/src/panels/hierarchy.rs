@@ -12,6 +12,7 @@ use bevy::{
 };
 use bevy_egui::egui::Ui;
 use bevy_inspector_egui::bevy_inspector::hierarchy::{Hierarchy, SelectedEntities};
+use bevy_inspector_egui::bevy_inspector::Filter;
 
 use crate::scene::EditorEntity;
 use crate::selection::PickSelection;
@@ -47,7 +48,8 @@ impl Panel for HierarchyPanel {
                 shortcircuit_entity: None,
                 extra_state: &mut (),
             }
-            .show::<Without<EditorEntity>>(ui);
+            // .show_with_default_filter::<()>(ui);
+            .show_with_default_filter::<Without<EditorEntity>>(ui);
 
             if selected {
                 state.selection = InspectorSelection::Entities;
