@@ -11,9 +11,10 @@ use bevy::{
     scene,
 };
 use bevy_egui::egui::Ui;
-use bevy_inspector_egui::bevy_inspector::hierarchy::Hierarchy;
+use bevy_inspector_egui::bevy_inspector::hierarchy::{Hierarchy, SelectedEntities};
 
 use crate::scene::EditorEntity;
+use crate::selection::PickSelection;
 use crate::{
     editor::{InspectorSelection, InspectorState},
     panel::Panel,
@@ -50,6 +51,15 @@ impl Panel for HierarchyPanel {
 
             if selected {
                 state.selection = InspectorSelection::Entities;
+            }
+
+            for entity in state.selected_entities.iter() {
+                world
+                    .entity_mut(entity)
+                    .entry::<PickSelection>()
+                    .and_modify(|mut selectoin| {
+                        selectoin.is_selected = true;
+                    });
             }
         });
     }
