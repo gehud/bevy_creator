@@ -3,7 +3,7 @@ use std::{any::TypeId, marker::PhantomData};
 use bevy_app::{Plugin, Update};
 use bevy_asset::{Asset, AssetPath, AssetServer, Handle, LoadState};
 use bevy_inspector_egui::{
-    egui::{self, Color32, Frame, Layout, Margin, Sense, Stroke},
+    egui::{self, Color32, Frame, InnerResponse, Layout, Margin, Sense, Stroke},
     inspector_egui_impls::{InspectorEguiImpl, InspectorPrimitive},
 };
 use bevy_pbr::StandardMaterial;
@@ -43,6 +43,19 @@ impl<A: Asset> AssetRef<A> {
     pub fn clear(&mut self) {
         self.0.clear();
     }
+
+    fn validate(
+        path: &String,
+        env: &bevy_inspector_egui::reflect_inspector::InspectorUi<'_, '_>,
+    ) -> bool {
+        env.context.world.as_ref().is_none_or(|world| {
+            let asset_server = unsafe { world.world().get_resource::<AssetServer>().unwrap() };
+            match block_on(asset_server.load_untyped_async(path)) {
+                Ok(handle) => handle.type_id() == TypeId::of::<A>(),
+                Err(_) => false,
+            }
+        })
+    }
 }
 
 impl<A: Asset> InspectorPrimitive for AssetRef<A> {
@@ -55,31 +68,54 @@ impl<A: Asset> InspectorPrimitive for AssetRef<A> {
     ) -> bool {
         let mut changed = false;
 
-        let frame = Frame::default().inner_margin(4.);
+        let style = ui.visuals().widgets.inactive;
+        let fill = style.bg_fill;
+        let stroke = style.bg_stroke;
 
-        let (_, payload) = ui.dnd_drop_zone::<AssetRefPayload, ()>(frame, |ui| {
-            if self.is_empty() {
-                ui.label("None");
+        let frame = Frame::default().fill(fill).stroke(stroke);
+
+        let InnerResponse { inner: payload, .. } = frame.show(ui, |ui| {
+            let is_payload_suitable = ui
+                .response()
+                .dnd_hover_payload::<AssetRefPayload>()
+                .is_none_or(|payload| Self::validate(&payload.0, &env));
+
+            if is_payload_suitable {
+                let (_, payload) = ui.dnd_drop_zone::<AssetRefPayload, ()>(frame, |ui| {
+                    if self.is_empty() {
+                        ui.label("None");
+                    } else {
+                        ui.label(&self.0);
+                    }
+                });
+
+                payload
             } else {
-                ui.label(&self.0);
+                if self.is_empty() {
+                    ui.label("None");
+                } else {
+                    ui.label(&self.0);
+                }
+
+                None
             }
         });
+
+        if ui.button("X").clicked() {
+            self.clear();
+            changed = true;
+        }
 
         if let Some(payload) = payload {
             self.0 = payload.0.clone();
             changed = true;
         }
 
-        let is_valid = env.context.world.as_ref().is_none_or(|world| {
-            let asset_server = unsafe { world.world().get_resource::<AssetServer>().unwrap() };
-            match block_on(asset_server.load_untyped_async(&self.0)) {
-                Ok(handle) => handle.type_id() == TypeId::of::<A>(),
-                Err(_) => false,
-            }
-        });
+        let is_valid = self.is_empty() || Self::validate(&self.0, &env);
 
         if !is_valid {
-            self.0 = String::new();
+            self.clear();
+            changed = true;
         }
 
         changed

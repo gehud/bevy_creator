@@ -22,7 +22,7 @@ use bevy::ecs::event::EventReader;
 use bevy::ecs::query::{With, Without};
 use bevy::ecs::reflect::AppTypeRegistry;
 use bevy::ecs::schedule::IntoSystemConfigs;
-use bevy::ecs::system::{Res, ResMut, Resource};
+use bevy::ecs::system::{Commands, Query, Res, ResMut, Resource};
 use bevy::ecs::world::World;
 use bevy::input::keyboard::KeyCode;
 use bevy::input::ButtonInput;
@@ -30,6 +30,7 @@ use bevy::pbr::{MeshMaterial3d, StandardMaterial};
 use bevy::picking::events::Pointer;
 use bevy::reflect::TypeRegistry;
 use bevy::render::mesh::Mesh3d;
+use bevy::render::view::Visibility;
 use bevy::scene::ron::Deserializer;
 use bevy::scene::serde::SceneDeserializer;
 use bevy::scene::DynamicSceneBuilder;
@@ -50,7 +51,7 @@ use serde::de::DeserializeSeed;
 use transform_gizmo_egui::{EnumSet, Gizmo, GizmoMode};
 
 use crate::egui_config::EguiConfigPlugin;
-use crate::selection::{Deselect, Select};
+use crate::selection::{Deselect, PickSelection, Select};
 
 #[derive(Eq, PartialEq)]
 pub enum InspectorSelection {
@@ -79,7 +80,7 @@ impl Plugin for EditorPlugin {
             .add_systems(Startup, init_panels)
             .add_systems(
                 PreUpdate,
-                (handle_selection, show_ui)
+                (handle_selection, show_ui, add_selection)
                     .chain()
                     .in_set(EditorSet::Egui),
             );
@@ -208,6 +209,15 @@ fn handle_selection(
     }
 }
 
+fn add_selection(
+    query: Query<Entity, (Without<PickSelection>, With<Visibility>)>,
+    mut commands: Commands,
+) {
+    for entity in query.iter() {
+        commands.entity(entity).insert(PickSelection::default());
+    }
+}
+
 fn show_ui(world: &mut World) {
     let Ok(egui_context) = world
         .query_filtered::<&mut EguiContext, With<PrimaryWindow>>()
@@ -301,6 +311,7 @@ fn save_scene_to(world: &mut World, path: PathBuf) {
     let scene = DynamicSceneBuilder::from_world(&world)
         .deny_component::<Mesh3d>()
         .deny_component::<MeshMaterial3d<StandardMaterial>>()
+        .deny_component::<PickSelection>()
         .extract_entities(entities.iter().cloned())
         .build();
 
