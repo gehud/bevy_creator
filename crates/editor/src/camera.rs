@@ -1,38 +1,28 @@
 use std::f32::consts::PI;
 
 use bevy::{
-    app::{Plugin, PostUpdate, Update},
-    core_pipeline::core_3d::graph::input,
+    app::{Plugin, Update},
     ecs::{
         component::Component,
         entity::Entity,
         event::EventReader,
         query::With,
         reflect::ReflectComponent,
-        schedule::IntoSystemConfigs,
-        system::{Commands, Query, Res, ResMut},
-        world::Mut,
+        system::{Commands, Query, Res},
     },
     hierarchy::Parent,
     input::{
-        keyboard::{KeyCode, KeyboardInput},
-        mouse::{MouseButton, MouseButtonInput},
-        ButtonInput, ButtonState,
+        keyboard::KeyCode,
+        mouse::{MouseButton, MouseMotion},
+        ButtonInput,
     },
     math::{Dir3, EulerRot, Quat},
-    picking::{
-        events::Pointer,
-        pointer::{PointerAction, PointerButton, PointerInput, PressDirection},
-    },
+    picking::pointer::PointerInput,
     reflect::Reflect,
     render::camera::Camera,
     time::Time,
-    transform::{
-        components::{GlobalTransform, Transform},
-        TransformSystem,
-    },
-    utils::default,
-    window::PrimaryWindow,
+    transform::components::{GlobalTransform, Transform},
+    window::{CursorGrabMode, PrimaryWindow, Window},
 };
 
 #[derive(Component, Reflect)]
@@ -64,16 +54,14 @@ pub struct EditorCameraPlugin;
 
 impl Plugin for EditorCameraPlugin {
     fn build(&self, app: &mut bevy::app::App) {
-        app.register_type::<EditorCamera>().add_systems(
-            PostUpdate,
-            camera_movement_system.before(TransformSystem::TransformPropagate),
-        );
+        app.register_type::<EditorCamera>()
+            .add_systems(Update, camera_movement_system);
     }
 }
 
 fn camera_movement_system(
     time: Res<Time>,
-    primary_windows: Query<Entity, With<PrimaryWindow>>,
+    mut primary_windows: Query<(Entity, &mut Window), With<PrimaryWindow>>,
     mut editor_cameras: Query<(
         &Camera,
         &mut EditorCamera,
@@ -81,11 +69,13 @@ fn camera_movement_system(
         &GlobalTransform,
         &Parent,
     )>,
-    mut pointer_inputs: EventReader<PointerInput>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
+    mouse_input: Res<ButtonInput<MouseButton>>,
+    mut mouse_motions: EventReader<MouseMotion>,
+    mut pointer_inputs: EventReader<PointerInput>,
     mut commands: Commands,
 ) {
-    let Ok(primary_window) = primary_windows.get_single() else {
+    let Ok((window_entity, mut window)) = primary_windows.get_single_mut() else {
         return;
     };
 
@@ -95,61 +85,60 @@ fn camera_movement_system(
         return;
     };
 
-    let mut was_moved = false;
+    let camera_target = camera.target.normalize(Some(window_entity)).unwrap();
 
-    for input in pointer_inputs.read() {
-        let matches_target =
-            input.location.target == camera.target.normalize(Some(primary_window)).unwrap();
+    let matches_target = pointer_inputs
+        .read()
+        .any(|input| input.location.target == camera_target);
 
-        match input.action {
-            PointerAction::Moved { delta } => {
-                if !was_moved {
-                    if editor_camera.is_pan {
-                        let right = global_transform.right();
-                        let up = global_transform.up();
-                        let offset = up * delta.y * editor_camera.pan_sensitivity
-                            - right * delta.x * editor_camera.pan_sensitivity;
-                        commands.entity(root.get()).entry::<Transform>().and_modify(
-                            move |mut transform| {
-                                transform.translation += offset;
-                            },
-                        );
-                    } else if editor_camera.is_fly {
-                        let mut pitch = transform.rotation.to_euler(EulerRot::XYZ).0 / PI * 180.;
-                        pitch = (pitch - delta.y * editor_camera.rotation_sensitivity * time.delta_secs())
-                            .clamp(-ANGLE_LIMIT, ANGLE_LIMIT);
+    if matches_target && mouse_input.just_pressed(MouseButton::Middle) {
+        editor_camera.is_pan = true;
+    } else if mouse_input.just_released(MouseButton::Middle) {
+        editor_camera.is_pan = false;
+    }
 
-                        transform.rotation =
-                            Quat::from_euler(EulerRot::XYZ, pitch * PI / 180., 0., 0.);
+    if matches_target && mouse_input.just_pressed(MouseButton::Right) {
+        editor_camera.is_fly = true;
+    } else if mouse_input.just_released(MouseButton::Right) {
+        editor_camera.is_fly = false;
+    }
 
-                        let yaw_delta = -delta.x * editor_camera.rotation_sensitivity * time.delta_secs();
-                        commands.entity(root.get()).entry::<Transform>().and_modify(
-                            move |mut transform| {
-                                let dir = transform.up();
-                                transform.rotate_local_axis(dir, yaw_delta * PI / 180.);
-                            },
-                        );
-                    }
+    if editor_camera.is_pan || editor_camera.is_fly {
+        window.cursor_options.grab_mode = CursorGrabMode::Locked;
+        window.cursor_options.visible = false;
+    } else {
+        window.cursor_options.grab_mode = CursorGrabMode::None;
+        window.cursor_options.visible = true;
+    }
 
-                    was_moved = true;
-                }
-            }
-            PointerAction::Pressed { direction, button } => {
-                if button == PointerButton::Middle {
-                    if matches_target && direction == PressDirection::Down {
-                        editor_camera.is_pan = true;
-                    } else if direction == PressDirection::Up {
-                        editor_camera.is_pan = false;
-                    }
-                } else if button == PointerButton::Secondary {
-                    if matches_target && direction == PressDirection::Down {
-                        editor_camera.is_fly = true;
-                    } else if direction == PressDirection::Up {
-                        editor_camera.is_fly = false;
-                    }
-                }
-            }
-            _ => {}
+    for motion in mouse_motions.read() {
+        if editor_camera.is_pan {
+            let right = global_transform.right().normalize();
+            let up = global_transform.up().normalize();
+            let offset = up * motion.delta.y * editor_camera.pan_sensitivity
+                - right * motion.delta.x * editor_camera.pan_sensitivity;
+            commands
+                .entity(root.get())
+                .entry::<Transform>()
+                .and_modify(move |mut transform| {
+                    transform.translation += offset;
+                });
+        } else if editor_camera.is_fly {
+            let mut pitch = transform.rotation.to_euler(EulerRot::XYZ).0 / PI * 180.;
+            pitch = (pitch
+                - motion.delta.y * editor_camera.rotation_sensitivity * time.delta_secs())
+            .clamp(-ANGLE_LIMIT, ANGLE_LIMIT);
+
+            transform.rotation = Quat::from_euler(EulerRot::XYZ, pitch * PI / 180., 0., 0.);
+
+            let yaw_delta =
+                -motion.delta.x * editor_camera.rotation_sensitivity * time.delta_secs();
+            commands
+                .entity(root.get())
+                .entry::<Transform>()
+                .and_modify(move |mut transform| {
+                    transform.rotate_local_y(yaw_delta * PI / 180.);
+                });
         }
     }
 
@@ -217,7 +206,7 @@ fn translate_dir(
     dir: Dir3,
     delta_secs: f32,
 ) {
-    let offset = dir * editor_camera.speed * delta_secs;
+    let offset = dir.normalize() * editor_camera.speed * delta_secs;
     commands
         .entity(root)
         .entry::<Transform>()

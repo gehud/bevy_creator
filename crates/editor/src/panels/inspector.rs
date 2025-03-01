@@ -1,7 +1,7 @@
 use bevy::{
     ecs::{
         reflect::{AppTypeRegistry, ReflectComponent},
-        world::{CommandQueue, FromWorld, Mut, World},
+        world::{Mut, World},
     },
     reflect::prelude::ReflectDefault,
 };

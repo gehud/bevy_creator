@@ -1,18 +1,10 @@
 use bevy::ecs::query::Without;
-use bevy::scene::SceneInstance;
-use bevy::{
-    ecs::{
-        entity::Entity,
-        query::With,
-        reflect::AppTypeRegistry,
-        world::{Mut, World},
-    },
-    hierarchy::{BuildChildren, Parent},
-    scene,
+use bevy::ecs::{
+    reflect::AppTypeRegistry,
+    world::{Mut, World},
 };
 use bevy_egui::egui::Ui;
-use bevy_inspector_egui::bevy_inspector::hierarchy::{Hierarchy, SelectedEntities};
-use bevy_inspector_egui::bevy_inspector::Filter;
+use bevy_inspector_egui::bevy_inspector::hierarchy::Hierarchy;
 
 use crate::scene::EditorEntity;
 use crate::selection::PickSelection;
@@ -48,7 +40,6 @@ impl Panel for HierarchyPanel {
                 shortcircuit_entity: None,
                 extra_state: &mut (),
             }
-            // .show_with_default_filter::<()>(ui);
             .show_with_default_filter::<Without<EditorEntity>>(ui);
 
             if selected {

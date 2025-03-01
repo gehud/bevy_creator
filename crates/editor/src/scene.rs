@@ -1,39 +1,24 @@
-use bevy::app::{App, Plugin, Startup, Update};
-use bevy::asset::{AssetServer, Assets};
-use bevy::color::{Gray, LinearRgba};
-use bevy::core::Name;
+use bevy::app::{App, Plugin, Startup};
+use bevy::asset::Assets;
 use bevy::core_pipeline::core_3d::Camera3d;
 use bevy::ecs::component::Component;
 use bevy::ecs::entity::Entity;
-use bevy::ecs::event::{EventReader, EventWriter};
-use bevy::ecs::query::With;
 use bevy::ecs::schedule::IntoSystemConfigs;
 use bevy::ecs::system::Query;
-use bevy::ecs::{
-    reflect::AppTypeRegistry,
-    system::{Commands, Res, ResMut},
-    world::World,
-};
-use bevy::gizmos::config::{GizmoConfigGroup, GizmoConfigStore};
-use bevy::gizmos::gizmos::Gizmos;
+use bevy::ecs::system::{Commands, ResMut};
+use bevy::gizmos::config::GizmoConfigGroup;
 use bevy::gizmos::AppGizmoBuilder;
 use bevy::hierarchy::{BuildChildren, ChildBuild};
 use bevy::image::Image;
-use bevy::input::mouse::{MouseButton, MouseButtonInput, MouseMotion};
-use bevy::input::{ButtonInput, ButtonState};
-use bevy::math::UVec2;
-use bevy::math::{Quat, Vec2, Vec3};
-use bevy::picking::events::Pointer;
+use bevy::math::Vec3;
 use bevy::reflect::Reflect;
-use bevy::render::mesh::Mesh;
+use bevy::render::view::InheritedVisibility;
 use bevy::render::{
     camera::Camera,
     render_resource::{TextureDimension, TextureFormat, TextureUsages},
 };
-use bevy::scene::{DynamicScene, DynamicSceneRoot};
 use bevy::transform::components::Transform;
 use bevy::utils::default;
-use std::f32::consts::PI;
 
 use crate::camera::{EditorCamera, EditorCameraPlugin};
 use crate::grid::{InfiniteGridBundle, InfiniteGridPlugin};
@@ -68,7 +53,10 @@ fn setup_editor_scene(mut commands: Commands, mut images: ResMut<Assets<Image>>)
     let image_handle = images.add(image);
 
     commands
-        .spawn(Transform::from_translation(Vec3::new(0.0, 1.5, 5.0)))
+        .spawn((
+            Transform::from_translation(Vec3::new(0.0, 1.5, 5.0)),
+            InheritedVisibility::default(),
+        ))
         .with_children(|builder| {
             builder.spawn((
                 Camera3d::default(),

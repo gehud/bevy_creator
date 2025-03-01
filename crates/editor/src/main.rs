@@ -6,7 +6,7 @@ use bevy::asset::{AssetMode, AssetPlugin};
 use bevy::ecs::schedule::{IntoSystemSetConfigs, SystemSet};
 use bevy::picking::{mesh_picking::MeshPickingPlugin, PickSet};
 use bevy::utils::default;
-use bevy::window::{PresentMode, Window, WindowPlugin};
+use bevy::window::{Window, WindowPlugin};
 use bevy::DefaultPlugins;
 use bevy_assets::CustomAssetsPlugin;
 use bevy_config::define_app_config;
@@ -17,18 +17,18 @@ use egui_picking::EguiPickingPlugin;
 use selection::SelectionPlugin;
 
 mod asset;
+mod camera;
 mod dock;
 mod editor;
 mod egui_config;
 mod egui_picking;
+mod grid;
 mod panel;
 mod panels;
 mod scene;
 mod selection;
 mod transform_gizmo_ext;
 mod window_config;
-mod camera;
-mod grid;
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 enum EditorSet {

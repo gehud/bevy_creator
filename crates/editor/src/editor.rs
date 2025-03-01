@@ -2,7 +2,7 @@ use std::any::TypeId;
 use std::error::Error;
 use std::fs::File;
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use crate::dock::{EditorDockState, PanelViewer, StandardEditorDockStateTemplate};
 use crate::panel::Panel;
@@ -16,14 +16,13 @@ use crate::scene::{EditorEntity, EditorScenePlugin};
 use crate::window_config::WindowConfigPlugin;
 use crate::EditorSet;
 use bevy::app::{App, Plugin, PreUpdate, Startup};
-use bevy::asset::{Assets, UntypedAssetId};
-use bevy::ecs::component::Component;
-use bevy::ecs::entity::{Entity, EntityHash, EntityHashMap};
+use bevy::asset::UntypedAssetId;
+use bevy::ecs::entity::{Entity, EntityHashMap};
 use bevy::ecs::event::EventReader;
 use bevy::ecs::query::{With, Without};
 use bevy::ecs::reflect::AppTypeRegistry;
 use bevy::ecs::schedule::IntoSystemConfigs;
-use bevy::ecs::system::{Query, Res, ResMut, Resource};
+use bevy::ecs::system::{Res, ResMut, Resource};
 use bevy::ecs::world::World;
 use bevy::input::keyboard::KeyCode;
 use bevy::input::ButtonInput;
@@ -31,18 +30,18 @@ use bevy::pbr::{MeshMaterial3d, StandardMaterial};
 use bevy::picking::events::Pointer;
 use bevy::reflect::TypeRegistry;
 use bevy::render::mesh::Mesh3d;
-use bevy::scene::ron::{from_str, Deserializer};
+use bevy::scene::ron::Deserializer;
 use bevy::scene::serde::SceneDeserializer;
-use bevy::scene::{DynamicScene, DynamicSceneBuilder, DynamicSceneRoot};
+use bevy::scene::DynamicSceneBuilder;
 use bevy::utils::default;
 use bevy::utils::hashbrown::HashMap;
-use bevy::window::{PrimaryWindow, Window};
+use bevy::window::PrimaryWindow;
 use bevy_egui::egui::panel::TopBottomSide;
 use bevy_egui::egui::{Id, TopBottomPanel};
-use bevy_egui::{egui, EguiContext, EguiContextSettings, EguiContexts};
+use bevy_egui::{egui, EguiContext};
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
-use egui_dock::{ButtonsStyle, DockArea};
+use egui_dock::DockArea;
 use libloading::{Library, Symbol};
 use rfd::FileDialog;
 use serde::de::DeserializeSeed;
@@ -120,7 +119,7 @@ impl EditorState {
         };
 
         let dock_style = egui_dock::Style::from_egui(ctx.style().as_ref());
-        
+
         DockArea::new(&mut self.docking)
             .style(dock_style)
             .show_leaf_collapse_buttons(false)

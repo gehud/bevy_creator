@@ -1,6 +1,5 @@
 use bevy::asset::{Assets, Handle};
 use bevy::ecs::{
-    event::EventWriter,
     query::With,
     system::{In, Local, Query, Res, ResMut, RunSystemOnce},
     world::{Mut, World},
@@ -20,7 +19,7 @@ use bevy::window::{PrimaryWindow, Window};
 use bevy_egui::egui::{PointerButton as EguiPointerButton, Sense};
 use bevy_egui::{
     egui::{Rect, TextureId, Ui, Vec2 as EguiVec2},
-    EguiContextSettings, EguiContexts,
+    EguiContexts,
 };
 use transform_gizmo_egui::{math::Transform as GizmoTransform, GizmoConfig, GizmoOrientation};
 
@@ -52,7 +51,9 @@ impl Panel for ScenePanel {
 
         let (image_handle, texture_id, size) = world.run_system_once(draw_image).unwrap();
 
-        let viewport_response = ui.image((texture_id, EguiVec2::new(size.x, size.y))).interact(Sense::click());
+        let viewport_response = ui
+            .image((texture_id, EguiVec2::new(size.x, size.y)))
+            .interact(Sense::click());
 
         // Picking support.
         if let Some(pointer_pos_window) = viewport_response.hover_pos() {
@@ -85,8 +86,8 @@ impl Panel for ScenePanel {
                             button: PointerButton::Primary,
                         },
                     });
-                } 
-                
+                }
+
                 if input.pointer.button_pressed(EguiPointerButton::Secondary) {
                     world.send_event(PointerInput {
                         pointer_id: PointerId::Mouse,
@@ -99,8 +100,8 @@ impl Panel for ScenePanel {
                             button: PointerButton::Secondary,
                         },
                     });
-                } 
-                
+                }
+
                 if input.pointer.button_pressed(EguiPointerButton::Middle) {
                     world.send_event(PointerInput {
                         pointer_id: PointerId::Mouse,
@@ -127,8 +128,8 @@ impl Panel for ScenePanel {
                             button: PointerButton::Primary,
                         },
                     });
-                } 
-                
+                }
+
                 if input.pointer.button_released(EguiPointerButton::Secondary) {
                     world.send_event(PointerInput {
                         pointer_id: PointerId::Mouse,
@@ -141,8 +142,8 @@ impl Panel for ScenePanel {
                             button: PointerButton::Secondary,
                         },
                     });
-                } 
-                
+                }
+
                 if input.pointer.button_released(EguiPointerButton::Middle) {
                     world.send_event(PointerInput {
                         pointer_id: PointerId::Mouse,
