@@ -8,13 +8,15 @@ use bevy_ecs::{
 };
 use bevy_pbr::{MeshMaterial3d, StandardMaterial};
 use bevy_reflect::{prelude::ReflectDefault, Reflect};
-use bevy_render::mesh::Mesh3d;
+use bevy_render::mesh::{Mesh, Mesh3d};
+
+use crate::AssetRef;
 
 #[derive(Default, Component, Reflect)]
 #[reflect(Default, Component)]
 pub struct MeshRenderer {
-    mesh: String,
-    material: String,
+    mesh: AssetRef<Mesh>,
+    material: AssetRef<StandardMaterial>,
 }
 
 pub fn renderer_system(
@@ -23,12 +25,8 @@ pub fn renderer_system(
     asset_server: Res<AssetServer>,
 ) {
     for (entity, renderer) in renderers.iter() {
-        let mesh_handle = asset_server.load(renderer.mesh.clone());
-        let material_handle = if renderer.material.is_empty() {
-            Default::default()
-        } else {
-            asset_server.load(renderer.material.clone())
-        };
+        let mesh_handle = renderer.mesh.get(&asset_server);
+        let material_handle = renderer.material.get(&asset_server);
 
         commands
             .entity(entity)

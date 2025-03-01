@@ -1,4 +1,5 @@
 use std::env;
+use std::path::PathBuf;
 
 use asset::EditorAssetPlugin;
 use bevy::app::{App, PluginGroup, PreUpdate};
@@ -37,15 +38,22 @@ enum EditorSet {
 
 define_app_config!();
 
-const PROJECT_CACHE_DIR: &'static str = "/.bevy";
-const PROJECT_ASSETS_DIR: &'static str = "/assets";
-const PROJECT_PROCESSED_ASSET_DIR: &'static str = "/imported";
+const PROJECT_CACHE_DIR: &'static str = ".bevy";
+const PROJECT_ASSETS_DIR: &'static str = "assets";
+const PROJECT_PROCESSED_ASSET_DIR: &'static str = "imported";
 
 fn main() {
     let Some(project_dir) = env::args().nth(1) else {
         bevy::log::error!("Project directory expected as first argument");
         return;
     };
+
+    let mut file_path = PathBuf::from(project_dir.clone());
+    file_path.push(PROJECT_ASSETS_DIR);
+
+    let mut processed_file_path = PathBuf::from(project_dir.clone());
+    processed_file_path.push(PROJECT_CACHE_DIR);
+    processed_file_path.push(PROJECT_PROCESSED_ASSET_DIR);
 
     App::new()
         .add_plugins(
@@ -60,10 +68,8 @@ fn main() {
                 })
                 .set(AssetPlugin {
                     mode: AssetMode::Processed,
-                    file_path: project_dir.clone() + PROJECT_ASSETS_DIR,
-                    processed_file_path: project_dir.clone()
-                        + PROJECT_CACHE_DIR
-                        + PROJECT_PROCESSED_ASSET_DIR,
+                    file_path: file_path.to_string_lossy().to_string(),
+                    processed_file_path: processed_file_path.to_string_lossy().to_string(),
                     watch_for_changes_override: Some(true),
                     ..default()
                 }),

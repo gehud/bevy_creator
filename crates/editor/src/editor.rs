@@ -16,7 +16,7 @@ use crate::scene::{EditorEntity, EditorScenePlugin};
 use crate::window_config::WindowConfigPlugin;
 use crate::EditorSet;
 use bevy::app::{App, Plugin, PreUpdate, Startup};
-use bevy::asset::UntypedAssetId;
+use bevy::asset::{Asset, UntypedAssetId};
 use bevy::ecs::entity::{Entity, EntityHashMap};
 use bevy::ecs::event::EventReader;
 use bevy::ecs::query::{With, Without};
@@ -36,10 +36,12 @@ use bevy::scene::DynamicSceneBuilder;
 use bevy::utils::default;
 use bevy::utils::hashbrown::HashMap;
 use bevy::window::PrimaryWindow;
+use bevy_assets::AssetRef;
 use bevy_egui::egui::panel::TopBottomSide;
 use bevy_egui::egui::{Id, TopBottomPanel};
 use bevy_egui::{egui, EguiContext};
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
+use bevy_inspector_egui::inspector_egui_impls::InspectorPrimitive;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use egui_dock::DockArea;
 use libloading::{Library, Symbol};
@@ -77,7 +79,7 @@ impl Plugin for EditorPlugin {
             .add_systems(Startup, init_panels)
             .add_systems(
                 PreUpdate,
-                (handle_selection, set_gizmo_mode, show_ui)
+                (handle_selection, show_ui)
                     .chain()
                     .in_set(EditorSet::Egui),
             );
@@ -203,20 +205,6 @@ fn handle_selection(
         inspector_state
             .selected_entities
             .select_maybe_add(e.target, true);
-    }
-}
-
-fn set_gizmo_mode(input: Res<ButtonInput<KeyCode>>, mut gizmo_state: ResMut<GizmoState>) {
-    let keybinds = [
-        (KeyCode::KeyR, GizmoMode::all_rotate()),
-        (KeyCode::KeyT, GizmoMode::all_translate()),
-        (KeyCode::KeyS, GizmoMode::all_scale()),
-    ];
-
-    for (key, mode) in keybinds {
-        if input.just_pressed(key) {
-            gizmo_state.gizmo_modes = mode;
-        }
     }
 }
 

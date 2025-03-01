@@ -13,3 +13,8 @@ bevy_render = { version = "0.15" }
 bevy_pbr = { version = "0.15" }
 bevy_asset = { version = "0.15" }
 bevy_app = { version = "0.15" }
+bevy_log = { version = "0.15" }
+bevy_tasks = { version = "0.15" }
+bevy-inspector-egui = "0.29.1"
+
+serde = "1.0"
