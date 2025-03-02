@@ -30,6 +30,7 @@ mod scene;
 mod selection;
 mod transform_gizmo_ext;
 mod window_config;
+mod editor_config;
 
 #[derive(SystemSet, Debug, Clone, PartialEq, Eq, Hash)]
 enum EditorSet {

@@ -21,6 +21,7 @@ use bevy::transform::components::Transform;
 use bevy::utils::default;
 
 use crate::camera::{EditorCamera, EditorCameraPlugin};
+use crate::editor_config::restore_editor_config;
 use crate::grid::{InfiniteGridBundle, InfiniteGridPlugin};
 
 // We can create our own gizmo config group!
@@ -34,7 +35,12 @@ impl Plugin for EditorScenePlugin {
         app.add_plugins(InfiniteGridPlugin)
             .add_plugins(EditorCameraPlugin)
             .init_gizmo_group::<EditorGizmosGroup>()
-            .add_systems(Startup, (setup_editor_scene, mark_editor_entities).chain());
+            .add_systems(
+                Startup,
+                (setup_editor_scene, mark_editor_entities)
+                    .chain()
+                    .before(restore_editor_config),
+            );
     }
 }
 

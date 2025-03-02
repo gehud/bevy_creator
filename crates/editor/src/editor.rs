@@ -5,6 +5,7 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 
 use crate::dock::{EditorDockState, PanelViewer, StandardEditorDockStateTemplate};
+use crate::editor_config::EditorConfigPlugin;
 use crate::panel::Panel;
 use crate::panels::assets::AssetsPanel;
 use crate::panels::explorer::ExplorerPanel;
@@ -16,16 +17,14 @@ use crate::scene::{EditorEntity, EditorScenePlugin};
 use crate::window_config::WindowConfigPlugin;
 use crate::EditorSet;
 use bevy::app::{App, Plugin, PreUpdate, Startup};
-use bevy::asset::{Asset, UntypedAssetId};
+use bevy::asset::UntypedAssetId;
 use bevy::ecs::entity::{Entity, EntityHashMap};
 use bevy::ecs::event::EventReader;
 use bevy::ecs::query::{With, Without};
 use bevy::ecs::reflect::AppTypeRegistry;
 use bevy::ecs::schedule::IntoSystemConfigs;
-use bevy::ecs::system::{Commands, Query, Res, ResMut, Resource};
+use bevy::ecs::system::{Commands, Query, ResMut, Resource};
 use bevy::ecs::world::World;
-use bevy::input::keyboard::KeyCode;
-use bevy::input::ButtonInput;
 use bevy::pbr::{MeshMaterial3d, StandardMaterial};
 use bevy::picking::events::Pointer;
 use bevy::reflect::TypeRegistry;
@@ -37,17 +36,16 @@ use bevy::scene::DynamicSceneBuilder;
 use bevy::utils::default;
 use bevy::utils::hashbrown::HashMap;
 use bevy::window::PrimaryWindow;
-use bevy_assets::AssetRef;
 use bevy_egui::egui::panel::TopBottomSide;
 use bevy_egui::egui::{Id, TopBottomPanel};
 use bevy_egui::{egui, EguiContext};
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
-use bevy_inspector_egui::inspector_egui_impls::InspectorPrimitive;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use egui_dock::DockArea;
 use libloading::{Library, Symbol};
 use rfd::FileDialog;
 use serde::de::DeserializeSeed;
+use serde::{Deserialize, Serialize};
 use transform_gizmo_egui::{EnumSet, Gizmo, GizmoMode};
 
 use crate::egui_config::EguiConfigPlugin;
@@ -63,7 +61,6 @@ pub enum InspectorSelection {
 #[derive(Default, Resource)]
 pub struct SelectedProject {
     pub dir: Option<PathBuf>,
-    pub active_scene_path: Option<PathBuf>,
 }
 
 pub struct EditorPlugin;
@@ -74,6 +71,7 @@ impl Plugin for EditorPlugin {
             .add_plugins(EguiConfigPlugin)
             .add_plugins(EditorScenePlugin)
             .add_plugins(DefaultInspectorConfigPlugin)
+            .add_plugins(EditorConfigPlugin)
             .insert_resource(EditorState::new())
             .insert_resource(InspectorState::new())
             .insert_resource(GizmoState::new())
@@ -92,6 +90,11 @@ pub struct EditorState {
     pub docking: EditorDockState,
     pub panels: HashMap<String, Box<dyn Panel>>,
     pub lib: Option<Library>,
+}
+
+#[derive(Default, Resource, Serialize, Deserialize)]
+pub struct SelectedScene {
+    pub active_scene_path: Option<PathBuf>,
 }
 
 impl EditorState {
@@ -233,7 +236,7 @@ fn show_ui(world: &mut World) {
     });
 }
 
-fn load_scene_from(world: &mut World, path: PathBuf) {
+fn load_scene_from(world: &mut World, path: &PathBuf) {
     let mut text = String::new();
     let Ok(_) = File::open(path.clone()).and_then(|mut file| file.read_to_string(&mut text)) else {
         bevy::log::error!("Error while reading from scene file");
@@ -264,7 +267,29 @@ fn load_scene_from(world: &mut World, path: PathBuf) {
         return;
     };
 
-    world.resource_mut::<SelectedProject>().active_scene_path = Some(path);
+    world.resource_mut::<SelectedScene>().active_scene_path = Some(path.clone());
+}
+
+pub fn load_last_scene(world: &mut World) {
+    let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
+
+    if world
+        .resource::<SelectedScene>()
+        .active_scene_path
+        .as_ref()
+        .is_none_or(|path| !path.exists() || path.strip_prefix(&project_dir).is_err())
+    {
+        return;
+    }
+
+    load_scene_from(
+        world,
+        &world
+            .resource::<SelectedScene>()
+            .active_scene_path
+            .clone()
+            .unwrap(),
+    );
 }
 
 fn load_scene(world: &mut World) {
@@ -279,30 +304,32 @@ fn load_scene(world: &mut World) {
         return;
     };
 
-    load_scene_from(world, path);
+    load_scene_from(world, &path);
 }
 
 fn save_scene(world: &mut World) {
+    let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
+
     if world
-        .resource::<SelectedProject>()
+        .resource::<SelectedScene>()
         .active_scene_path
         .as_ref()
-        .is_none_or(|path| !path.exists())
+        .is_none_or(|path| !path.exists() || path.strip_prefix(&project_dir).is_err())
     {
         save_scene_as(world);
         return;
     }
 
     let path = world
-        .resource::<SelectedProject>()
+        .resource::<SelectedScene>()
         .active_scene_path
         .clone()
         .unwrap();
 
-    save_scene_to(world, path);
+    save_scene_to(world, &path);
 }
 
-fn save_scene_to(world: &mut World, path: PathBuf) {
+fn save_scene_to(world: &mut World, path: &PathBuf) {
     let entities = world
         .query_filtered::<Entity, Without<EditorEntity>>()
         .iter(world)
@@ -331,7 +358,7 @@ fn save_scene_to(world: &mut World, path: PathBuf) {
         };
     }
 
-    world.resource_mut::<SelectedProject>().active_scene_path = Some(path);
+    world.resource_mut::<SelectedScene>().active_scene_path = Some(path.clone());
 }
 
 fn save_scene_as(world: &mut World) {
@@ -346,7 +373,7 @@ fn save_scene_as(world: &mut World) {
         return;
     };
 
-    save_scene_to(world, path);
+    save_scene_to(world, &path);
 }
 
 fn draw_menu(editor_state: &mut EditorState, world: &mut World, ui: &mut egui::Ui) {

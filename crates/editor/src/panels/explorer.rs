@@ -1,15 +1,8 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use bevy::{
-    asset::{AssetServer, LoadContext},
-    ecs::{
-        system::{Res, ResMut},
-        world::{Mut, World},
-    },
-    tasks::block_on,
-};
+use bevy::{asset::AssetServer, ecs::world::World, tasks::block_on};
 use bevy_assets::AssetRefPayload;
-use bevy_egui::egui::{Id, Sense, TextBuffer, Ui};
+use bevy_egui::egui::{Id, TextBuffer, Ui};
 
 use crate::{editor::SelectedProject, panel::Panel, PROJECT_ASSETS_DIR};
 
