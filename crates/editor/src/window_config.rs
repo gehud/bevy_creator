@@ -35,13 +35,11 @@ fn restore_window_state(mut primary_window: Query<&mut Window, With<PrimaryWindo
     let mut window = primary_window.single_mut();
 
     if let Some(config) = load_window_config() {
-        bevy::log::info!("Loaded \"window\" config file");
         window.resolution = config.resolution;
         window.mode = config.mode;
         window.position = config.position;
         window.set_maximized(config.maximized);
     } else {
-        bevy::log::info!("Could not load \"window\" config file. Setting to default");
         window.set_maximized(true);
     };
 }

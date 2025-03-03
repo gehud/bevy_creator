@@ -1,11 +1,11 @@
 use bevy::app::{App, Plugin, PreUpdate, Startup};
 use bevy::ecs::event::EventReader;
 use bevy::ecs::system::Res;
-use bevy::ecs::world::World;
+use bevy::ecs::world::{Mut, World};
 use bevy::window::WindowCloseRequested;
 use bevy_config::app_config;
 
-use crate::editor::{load_last_scene, SelectedScene};
+use crate::editor::{load_last_scene, EditorState, SelectedScene};
 
 const CONFIG_NAME: &str = "editor";
 
@@ -24,7 +24,9 @@ pub fn restore_editor_config(world: &mut World) {
         *world.resource_mut::<SelectedScene>() = config;
     }
 
-    load_last_scene(world);
+    world.resource_scope(|world, mut state: Mut<EditorState>| {
+        state.compile(world);
+    });
 }
 
 fn on_before_close(

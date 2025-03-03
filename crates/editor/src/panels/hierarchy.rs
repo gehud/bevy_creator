@@ -26,6 +26,16 @@ impl Panel for HierarchyPanel {
             world.spawn_empty();
         }
 
+        if ui.button("Delete Selected").clicked() {
+            world.resource_scope(|world, mut state: Mut<InspectorState>| {
+                for entity in state.selected_entities.iter() {
+                    world.despawn(entity);
+                }
+
+                state.selected_entities.clear();
+            });
+        }
+
         ui.separator();
 
         world.resource_scope(|world, mut state: Mut<InspectorState>| {

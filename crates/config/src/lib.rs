@@ -34,8 +34,8 @@ impl AppConfig {
         };
 
         match self.write(file, text) {
-            Ok(_) => bevy_log::info!("Saved '{}' config file", file),
             Err(e) => bevy_log::error!("Could not write to '{}' file: {}", file, e.kind()),
+            _ => {}
         }
     }
 

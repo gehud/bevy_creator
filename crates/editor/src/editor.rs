@@ -1,8 +1,9 @@
 use std::any::TypeId;
 use std::error::Error;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{stdout, Read, Stdout, Write};
 use std::path::PathBuf;
+use std::process::{Child, Command, Stdio};
 
 use crate::dock::{EditorDockState, PanelViewer, StandardEditorDockStateTemplate};
 use crate::editor_config::EditorConfigPlugin;
@@ -18,12 +19,12 @@ use crate::window_config::WindowConfigPlugin;
 use crate::EditorSet;
 use bevy::app::{App, Plugin, PreUpdate, Startup};
 use bevy::asset::UntypedAssetId;
-use bevy::ecs::entity::{Entity, EntityHashMap};
+use bevy::ecs::entity::{self, Entity, EntityHashMap};
 use bevy::ecs::event::EventReader;
 use bevy::ecs::query::{With, Without};
 use bevy::ecs::reflect::AppTypeRegistry;
 use bevy::ecs::schedule::IntoSystemConfigs;
-use bevy::ecs::system::{Commands, Query, ResMut, Resource};
+use bevy::ecs::system::{Commands, Query, ResMut, Resource, RunSystemOnce};
 use bevy::ecs::world::World;
 use bevy::pbr::{MeshMaterial3d, StandardMaterial};
 use bevy::picking::events::Pointer;
@@ -33,16 +34,17 @@ use bevy::render::view::Visibility;
 use bevy::scene::ron::Deserializer;
 use bevy::scene::serde::SceneDeserializer;
 use bevy::scene::DynamicSceneBuilder;
+use bevy::time::Time;
 use bevy::utils::default;
 use bevy::utils::hashbrown::HashMap;
 use bevy::window::PrimaryWindow;
 use bevy_egui::egui::panel::TopBottomSide;
-use bevy_egui::egui::{Id, TopBottomPanel};
+use bevy_egui::egui::{Id, Modal, TopBottomPanel};
 use bevy_egui::{egui, EguiContext};
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use egui_dock::DockArea;
-use libloading::{Library, Symbol};
+use libloading::{library_filename, Library, Symbol};
 use rfd::FileDialog;
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Serialize};
@@ -90,6 +92,8 @@ pub struct EditorState {
     pub docking: EditorDockState,
     pub panels: HashMap<String, Box<dyn Panel>>,
     pub lib: Option<Library>,
+    pub compilation_process: Option<Child>,
+    compilation_animation_time: f32,
 }
 
 #[derive(Default, Resource, Serialize, Deserialize)]
@@ -101,8 +105,10 @@ impl EditorState {
     fn new() -> Self {
         Self {
             docking: EditorDockState::standard(),
-            panels: HashMap::default(),
+            panels: default(),
             lib: default(),
+            compilation_process: default(),
+            compilation_animation_time: default(),
         }
     }
 
@@ -134,24 +140,18 @@ impl EditorState {
         ctx.request_repaint();
     }
 
-    fn compile(&mut self, world: &mut World) -> Result<(), Box<dyn Error>> {
-        let selected_project = world.resource::<SelectedProject>();
-        let mut path = selected_project.dir.clone().unwrap();
-        path.push("target/debug/bevy_project");
+    pub fn compile(&mut self, world: &mut World) {
+        unload_scene(world);
 
-        unsafe {
-            self.lib = Some(Library::new(path)?);
+        self.lib = None;
 
-            if let Some(lib) = &mut self.lib {
-                let func =
-                    lib.get::<Symbol<unsafe extern "C" fn(&mut TypeRegistry)>>(b"register_types")?;
-                let type_registry = world.resource::<AppTypeRegistry>().clone();
-                let mut type_registry = type_registry.write();
-                func(&mut type_registry);
-            }
+        let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
 
-            Ok(())
-        }
+        self.compilation_process = Command::new("cargo")
+            .current_dir(project_dir)
+            .arg("build")
+            .spawn()
+            .ok();
     }
 }
 
@@ -221,6 +221,9 @@ fn add_selection(
     }
 }
 
+const COMPILATION_ANIMATION_DURATION: f32 = 0.5;
+const COMPILATION_ANIMATION_DOTS: u32 = 3;
+
 fn show_ui(world: &mut World) {
     let Ok(egui_context) = world
         .query_filtered::<&mut EguiContext, With<PrimaryWindow>>()
@@ -234,6 +237,77 @@ fn show_ui(world: &mut World) {
     world.resource_scope::<EditorState, _>(|world, mut editor_state| {
         editor_state.ui(world, egui_context.get_mut())
     });
+
+    let type_registry = world.resource::<AppTypeRegistry>().clone();
+    let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
+    let delta_seconds = world.resource::<Time>().delta_secs();
+    let mut state = world.resource_mut::<EditorState>();
+    if let Some(compilation_process) = state.compilation_process.as_mut() {
+        match compilation_process.try_wait() {
+            Ok(status) => {
+                if let Some(status) = status {
+                    state.compilation_process = None;
+                    state.compilation_animation_time = 0.;
+
+                    if status.success() {
+                        let mut lib_path = project_dir.clone();
+                        lib_path.push("target/debug/bevy_project");
+
+                        unsafe {
+                            match Library::new(library_filename(lib_path)) {
+                                Ok(lib) => {
+                                    state.lib = Some(lib);
+                                }
+                                Err(err) => {
+                                    bevy::log::error!("Failed to load library: {:?}", err);
+                                }
+                            }
+
+                            if let Some(lib) = &mut state.lib {
+                                match lib.get::<Symbol<unsafe extern "C" fn(&mut TypeRegistry)>>(
+                                    b"register_types",
+                                ) {
+                                    Ok(func) => {
+                                        let mut type_registry = type_registry.write();
+                                        func(&mut type_registry);
+                                    }
+                                    Err(err) => {
+                                        bevy::log::error!("Failed to get symbol: {:?}", err);
+                                    }
+                                }
+                            }
+                        }
+
+                        load_last_scene(world);
+                    }
+                } else {
+                    state.compilation_animation_time += delta_seconds;
+
+                    let mut dots =
+                        (state.compilation_animation_time / COMPILATION_ANIMATION_DURATION) as u32;
+
+                    if dots > COMPILATION_ANIMATION_DOTS {
+                        state.compilation_animation_time = 0.;
+                        dots = 0;
+                    }
+
+                    let mut message = String::from("Compilation");
+                    for _ in 0..dots {
+                        message.push('.');
+                    }
+
+                    Modal::new("compilation_process".into()).show(egui_context.get_mut(), |ui| {
+                        ui.set_width(250.0);
+                        ui.heading(message);
+                    });
+                }
+            }
+            Err(_) => {
+                state.compilation_process = None;
+                state.compilation_animation_time = 0.;
+            }
+        }
+    }
 }
 
 fn load_scene_from(world: &mut World, path: &PathBuf) {
@@ -268,6 +342,20 @@ fn load_scene_from(world: &mut World, path: &PathBuf) {
     };
 
     world.resource_mut::<SelectedScene>().active_scene_path = Some(path.clone());
+}
+
+pub fn unload_scene(world: &mut World) {
+    world
+        .resource_mut::<InspectorState>()
+        .selected_entities
+        .clear();
+
+    let mut entities = world.query_filtered::<Entity, Without<EditorEntity>>();
+    let entities = entities.iter(world).collect::<Vec<_>>();
+
+    for entity in entities {
+        world.despawn(entity);
+    }
 }
 
 pub fn load_last_scene(world: &mut World) {
@@ -405,7 +493,7 @@ fn draw_menu(editor_state: &mut EditorState, world: &mut World, ui: &mut egui::U
         });
 
         if ui.button("Compile").clicked() {
-            bevy::log::info!("{:?}", editor_state.compile(world));
+            editor_state.compile(world);
         }
     });
 }

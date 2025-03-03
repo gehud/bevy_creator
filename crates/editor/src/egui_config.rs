@@ -21,10 +21,7 @@ impl Plugin for EguiConfigPlugin {
 
 fn restore_panel_state(mut editor_state: ResMut<EditorState>) {
     if let Some(state) = load_panel_config() {
-        bevy::log::info!("Loaded \"egui\" config file");
         editor_state.docking = state;
-    } else {
-        bevy::log::info!("Could not load \"egui\" config file. Setting to default");
     }
 }
 
