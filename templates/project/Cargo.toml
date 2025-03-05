@@ -6,9 +6,17 @@ edition = "2021"
 [lib]
 crate-type = ["dylib"]
 path = ".bevy/lib.rs"
+name = "bevy_project"
+
+[[bin]]
+path = ".bevy/main.rs"
+name = "BevyProject"
 
 [workspace]
 resolver = "2"
+members = [
+    "deps/*"
+]
 
 # Enable a small amount of optimization in the dev profile.
 [profile.dev]
@@ -38,4 +46,6 @@ opt-level = "s"
 strip = "debuginfo"
 
 [dependencies]
-windows-targets = "0.52.6"
+windows_targets = { path = "deps/windows_targets" }
+
+{{dependencies}}

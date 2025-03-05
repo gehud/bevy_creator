@@ -1,0 +1,13 @@
+[package]
+name = "bevy_creator"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+path = "src/main.rs"
+name = "BevyCreator"
+
+[dependencies]
+bevy = "0.15"
+
+bevy_editor = { path = "../bevy_editor" }

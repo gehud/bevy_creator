@@ -3,12 +3,5 @@ rustflags = [
   "-Zthreads=0",
   "-C",
   "prefer-dynamic",
-  "-L",
-  "all=C:/Development/bevy_editor/target/debug/deps",
-  "--extern",
-  "bevy_ecs=C:/Development/bevy_editor/target/debug/bevy_ecs.dll",
-  "--extern",
-  "bevy_reflect=C:/Development/bevy_editor/target/debug/bevy_reflect.dll",
-  "--extern",
-  "bevy_log=C:/Development/bevy_editor/target/debug/bevy_log.dll",
+{{rustflags}}
 ]

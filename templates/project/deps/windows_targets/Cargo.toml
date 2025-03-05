@@ -1,0 +1,8 @@
+[package]
+name = "windows_targets"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+__windows_targets_0_53_0__ = { path = "v0.53.0" }
+__windows_targets_0_52_0__ = { path = "v0.52.0" }

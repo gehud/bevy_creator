@@ -1,0 +1,18 @@
+[package]
+name = "bevy_hub"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+path = "src/main.rs"
+name = "BevyHub"
+
+[dependencies]
+bevy = { version = "0.15", features = ["serialize", "embedded_watcher"] }
+bevy_egui = "0.32.0"
+
+rfd = "0.15"
+serde = "1.0"
+
+bevy_config = { path = "../bevy_config" }
+bevy_helper = { path = "../bevy_helper" }

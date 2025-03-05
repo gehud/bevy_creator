@@ -1,0 +1,150 @@
+use std::{any::TypeId, marker::PhantomData};
+
+use bevy_app::{Plugin, Update};
+use bevy_asset::{Asset, AssetServer, Handle};
+use bevy_inspector_egui::{
+    egui::{self, Frame, InnerResponse},
+    inspector_egui_impls::{InspectorEguiImpl, InspectorPrimitive},
+};
+use bevy_pbr::StandardMaterial;
+use bevy_reflect::Reflect;
+use bevy_render::mesh::Mesh;
+use bevy_tasks::block_on;
+use render::MeshRenderer;
+use serde::{Deserialize, Serialize};
+
+mod render;
+
+#[derive(Serialize, Deserialize, Reflect)]
+pub struct AssetRef<A: Asset>(String, #[reflect(ignore)] PhantomData<fn() -> Handle<A>>);
+
+impl<A: Asset> Default for AssetRef<A> {
+    fn default() -> Self {
+        Self(Default::default(), Default::default())
+    }
+}
+
+#[derive(Debug)]
+pub struct AssetRefPayload(pub String);
+
+impl<A: Asset> AssetRef<A> {
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn get(&self, asset_server: &AssetServer) -> Handle<A> {
+        if self.is_empty() {
+            return Default::default();
+        } else {
+            asset_server.load(&self.0)
+        }
+    }
+
+    pub fn clear(&mut self) {
+        self.0.clear();
+    }
+
+    fn validate(
+        path: &String,
+        env: &bevy_inspector_egui::reflect_inspector::InspectorUi<'_, '_>,
+    ) -> bool {
+        env.context.world.as_ref().is_none_or(|world| {
+            let asset_server = unsafe { world.world().get_resource::<AssetServer>().unwrap() };
+            match block_on(asset_server.load_untyped_async(path)) {
+                Ok(handle) => handle.type_id() == TypeId::of::<A>(),
+                Err(_) => false,
+            }
+        })
+    }
+}
+
+impl<A: Asset> InspectorPrimitive for AssetRef<A> {
+    fn ui(
+        &mut self,
+        ui: &mut egui::Ui,
+        _options: &dyn std::any::Any,
+        _id: egui::Id,
+        env: bevy_inspector_egui::reflect_inspector::InspectorUi<'_, '_>,
+    ) -> bool {
+        let mut changed = false;
+
+        let style = ui.visuals().widgets.inactive;
+        let fill = style.bg_fill;
+        let stroke = style.bg_stroke;
+
+        let frame = Frame::default().fill(fill).stroke(stroke);
+
+        let InnerResponse { inner: payload, .. } = frame.show(ui, |ui| {
+            let is_payload_suitable = ui
+                .response()
+                .dnd_hover_payload::<AssetRefPayload>()
+                .is_none_or(|payload| Self::validate(&payload.0, &env));
+
+            if is_payload_suitable {
+                let (_, payload) = ui.dnd_drop_zone::<AssetRefPayload, ()>(frame, |ui| {
+                    if self.is_empty() {
+                        ui.label("None");
+                    } else {
+                        ui.label(&self.0);
+                    }
+                });
+
+                payload
+            } else {
+                if self.is_empty() {
+                    ui.label("None");
+                } else {
+                    ui.label(&self.0);
+                }
+
+                None
+            }
+        });
+
+        if ui.button("X").clicked() {
+            self.clear();
+            changed = true;
+        }
+
+        if let Some(payload) = payload {
+            self.0 = payload.0.clone();
+            changed = true;
+        }
+
+        let is_valid = self.is_empty() || Self::validate(&self.0, &env);
+
+        if !is_valid {
+            self.clear();
+            changed = true;
+        }
+
+        changed
+    }
+
+    fn ui_readonly(
+        &self,
+        ui: &mut egui::Ui,
+        _options: &dyn std::any::Any,
+        _id: egui::Id,
+        _env: bevy_inspector_egui::reflect_inspector::InspectorUi<'_, '_>,
+    ) {
+        if self.is_empty() {
+            ui.label("None");
+        } else {
+            ui.label(&self.0);
+        }
+    }
+}
+
+pub struct CustomAssetsPlugin;
+
+impl Plugin for CustomAssetsPlugin {
+    fn build(&self, app: &mut bevy_app::App) {
+        app.register_type::<AssetRef<Mesh>>()
+            .register_type_data::<AssetRef<Mesh>, InspectorEguiImpl>()
+            .register_type::<AssetRef<StandardMaterial>>()
+            .register_type_data::<AssetRef<StandardMaterial>, InspectorEguiImpl>()
+            .register_type::<MeshRenderer>()
+            .add_systems(Update, render::renderer_system);
+    }
+}

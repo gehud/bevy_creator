@@ -1,8 +1,0 @@
-[package]
-name = "bevy_bootstrap"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-bevy = { version = "0.15", features = ["serialize"] }
-bevy_bootstrap_macros = { path = "macros" }

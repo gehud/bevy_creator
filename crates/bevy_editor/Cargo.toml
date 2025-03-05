@@ -1,0 +1,26 @@
+[package]
+name = "bevy_editor"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["rlib", "dylib"]
+
+[dependencies]
+bevy = { version = "0.15", features = ["serialize", "bevy_dev_tools", "bevy_remote", "asset_processor"] }
+bevy_egui = "0.32.0"
+egui_dock = { version = "0.15.0", features = ["serde"] }
+bevy-inspector-egui = "0.29.1"
+transform-gizmo-egui = "0.4"
+rfd = "0.15.2"
+image = "0.25"
+winit = "0.30"
+libloading = "0.8.6"
+uuid = "1.12"
+thiserror = "2"
+
+serde = "1.0"
+
+bevy_config = { path = "../bevy_config" }
+bevy_helper = { path = "../bevy_helper" }
+bevy_assets = { path = "../bevy_assets" }
