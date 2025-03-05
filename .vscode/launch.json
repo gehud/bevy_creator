@@ -22,10 +22,10 @@
             "preLaunchTask": "rust: cargo build"
         },
         {
-            "name": "(Windows) Launch 'BevyEditor'",
+            "name": "(Windows) Launch 'BevyCreator'",
             "type": "cppvsdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/target/debug/BevyEditor.exe",
+            "program": "${workspaceFolder}/target/debug/BevyCreator.exe",
             "args": [
                 "C:/Development/bevy_project"
             ],

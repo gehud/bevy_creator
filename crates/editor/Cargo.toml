@@ -3,9 +3,8 @@ name = "bevy_editor"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-path = "src/main.rs"
-name = "BevyEditor"
+[lib]
+crate-type = ["rlib", "dylib"]
 
 [dependencies]
 bevy = { version = "0.15", features = ["serialize", "bevy_dev_tools", "bevy_remote", "asset_processor"] }

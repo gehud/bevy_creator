@@ -140,7 +140,7 @@ fn add_project(mut project_dir: PathBuf) -> bool {
 fn open_project(project_dirs: &ResMut<ProjectDirs>, project_dir: PathBuf) {
     save_config(project_dirs);
 
-    Command::new("BevyEditor")
+    Command::new("BevyCreator")
         .arg(project_dir)
         .spawn()
         .expect("failed to execute process");

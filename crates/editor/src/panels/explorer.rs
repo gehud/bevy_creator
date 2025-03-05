@@ -4,7 +4,7 @@ use bevy::{asset::AssetServer, ecs::world::World, tasks::block_on};
 use bevy_assets::AssetRefPayload;
 use bevy_egui::egui::{Id, TextBuffer, Ui};
 
-use crate::{editor::SelectedProject, panel::Panel, PROJECT_ASSETS_DIR};
+use crate::{panel::Panel, ProjectDir, PROJECT_ASSET_DIR};
 
 #[derive(Default)]
 pub struct ExplorerPanel;
@@ -15,12 +15,7 @@ impl Panel for ExplorerPanel {
     }
 
     fn ui(&mut self, world: &mut World, ui: &mut Ui) {
-        let project_dir = world
-            .get_resource::<SelectedProject>()
-            .unwrap()
-            .dir
-            .clone()
-            .unwrap();
+        let project_dir = world.get_resource::<ProjectDir>().unwrap().clone();
 
         self.dir_ui(&world, &project_dir, ui);
     }
@@ -64,8 +59,8 @@ impl ExplorerPanel {
     }
 
     fn file_ui(&self, world: &World, path: &PathBuf, ui: &mut Ui) {
-        let mut project_assets_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
-        project_assets_dir.push(PROJECT_ASSETS_DIR);
+        let mut project_assets_dir = world.resource::<ProjectDir>().clone();
+        project_assets_dir.push(PROJECT_ASSET_DIR);
 
         if let Ok(asset_path) = path.strip_prefix(project_assets_dir) {
             let asset_path = asset_path.to_string_lossy().to_string();

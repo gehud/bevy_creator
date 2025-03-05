@@ -1,12 +1,16 @@
 use std::any::TypeId;
 use std::error::Error;
+use std::ffi::{OsStr, OsString};
 use std::fs::File;
 use std::io::{stdout, Read, Stdout, Write};
-use std::path::PathBuf;
+use std::ops::{Deref, DerefMut};
+use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 
+use crate::asset::EditorAssetPlugin;
 use crate::dock::{EditorDockState, PanelViewer, StandardEditorDockStateTemplate};
 use crate::editor_config::EditorConfigPlugin;
+use crate::egui_picking::EguiPickingPlugin;
 use crate::panel::Panel;
 use crate::panels::assets::AssetsPanel;
 use crate::panels::explorer::ExplorerPanel;
@@ -16,18 +20,20 @@ use crate::panels::resources::ResourcesPanel;
 use crate::panels::scene::ScenePanel;
 use crate::scene::{EditorEntity, EditorScenePlugin};
 use crate::window_config::WindowConfigPlugin;
-use crate::EditorSet;
+use crate::{EditorSet, ProjectDir};
 use bevy::app::{App, Plugin, PreUpdate, Startup};
 use bevy::asset::UntypedAssetId;
 use bevy::ecs::entity::{self, Entity, EntityHashMap};
 use bevy::ecs::event::EventReader;
 use bevy::ecs::query::{With, Without};
 use bevy::ecs::reflect::AppTypeRegistry;
-use bevy::ecs::schedule::IntoSystemConfigs;
+use bevy::ecs::schedule::{IntoSystemConfigs, IntoSystemSetConfigs};
 use bevy::ecs::system::{Commands, Query, ResMut, Resource, RunSystemOnce};
 use bevy::ecs::world::World;
 use bevy::pbr::{MeshMaterial3d, StandardMaterial};
 use bevy::picking::events::Pointer;
+use bevy::picking::mesh_picking::MeshPickingPlugin;
+use bevy::picking::PickSet;
 use bevy::reflect::TypeRegistry;
 use bevy::render::mesh::Mesh3d;
 use bevy::render::view::Visibility;
@@ -38,9 +44,11 @@ use bevy::time::Time;
 use bevy::utils::default;
 use bevy::utils::hashbrown::HashMap;
 use bevy::window::PrimaryWindow;
+use bevy_assets::CustomAssetsPlugin;
 use bevy_egui::egui::panel::TopBottomSide;
 use bevy_egui::egui::{Id, Modal, TopBottomPanel};
-use bevy_egui::{egui, EguiContext};
+use bevy_egui::{egui, EguiContext, EguiPlugin, EguiPreUpdateSet};
+use bevy_helper::winit::WindowIconPlugin;
 use bevy_inspector_egui::bevy_inspector::hierarchy::SelectedEntities;
 use bevy_inspector_egui::DefaultInspectorConfigPlugin;
 use egui_dock::DockArea;
@@ -51,7 +59,7 @@ use serde::{Deserialize, Serialize};
 use transform_gizmo_egui::{EnumSet, Gizmo, GizmoMode};
 
 use crate::egui_config::EguiConfigPlugin;
-use crate::selection::{Deselect, PickSelection, Select};
+use crate::selection::{Deselect, PickSelection, Select, SelectionPlugin};
 
 #[derive(Eq, PartialEq)]
 pub enum InspectorSelection {
@@ -60,16 +68,26 @@ pub enum InspectorSelection {
     Asset(TypeId, String, UntypedAssetId),
 }
 
-#[derive(Default, Resource)]
-pub struct SelectedProject {
-    pub dir: Option<PathBuf>,
+pub struct EditorPlugin {
+    pub project_dir: PathBuf,
 }
-
-pub struct EditorPlugin;
 
 impl Plugin for EditorPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(WindowConfigPlugin)
+        app.add_plugins(WindowIconPlugin)
+            .configure_sets(
+                PreUpdate,
+                EditorSet::Egui
+                    .after(EguiPreUpdateSet::BeginPass)
+                    .before(PickSet::Backend),
+            )
+            .add_plugins(EguiPlugin)
+            .add_plugins(MeshPickingPlugin)
+            .add_plugins(EguiPickingPlugin)
+            .add_plugins(SelectionPlugin)
+            .add_plugins(EditorAssetPlugin)
+            .add_plugins(CustomAssetsPlugin)
+            .add_plugins(WindowConfigPlugin)
             .add_plugins(EguiConfigPlugin)
             .add_plugins(EditorScenePlugin)
             .add_plugins(DefaultInspectorConfigPlugin)
@@ -77,6 +95,7 @@ impl Plugin for EditorPlugin {
             .insert_resource(EditorState::new())
             .insert_resource(InspectorState::new())
             .insert_resource(GizmoState::new())
+            .insert_resource(ProjectDir(self.project_dir.clone()))
             .add_systems(Startup, init_panels)
             .add_systems(
                 PreUpdate,
@@ -145,8 +164,7 @@ impl EditorState {
 
         if let Some(lib) = &mut self.lib {
             unsafe {
-                match lib.get::<Symbol<unsafe extern "C" fn(&mut TypeRegistry)>>(b"remove_types")
-                {
+                match lib.get::<Symbol<unsafe extern "C" fn(&mut TypeRegistry)>>(b"remove_types") {
                     Ok(func) => {
                         let type_registry = world.resource_mut::<AppTypeRegistry>();
                         let mut type_registry = type_registry.write();
@@ -161,7 +179,7 @@ impl EditorState {
 
         self.lib = None;
 
-        let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
+        let project_dir = world.resource::<ProjectDir>().clone();
 
         self.compilation_process = Command::new("cargo")
             .current_dir(project_dir)
@@ -255,7 +273,7 @@ fn show_ui(world: &mut World) {
     });
 
     let type_registry = world.resource::<AppTypeRegistry>().clone();
-    let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
+    let project_dir = world.resource::<ProjectDir>().clone();
     let delta_seconds = world.resource::<Time>().delta_secs();
     let mut state = world.resource_mut::<EditorState>();
     if let Some(compilation_process) = state.compilation_process.as_mut() {
@@ -378,7 +396,7 @@ pub fn unload_scene(world: &mut World) {
 }
 
 pub fn load_last_scene(world: &mut World) {
-    let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
+    let project_dir = world.resource::<ProjectDir>().clone();
 
     if world
         .resource::<SelectedScene>()
@@ -400,7 +418,7 @@ pub fn load_last_scene(world: &mut World) {
 }
 
 fn load_scene(world: &mut World) {
-    let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
+    let project_dir = world.resource::<ProjectDir>().clone();
 
     let path = FileDialog::new()
         .add_filter("Bevy Scene", &["scn"])
@@ -415,7 +433,7 @@ fn load_scene(world: &mut World) {
 }
 
 fn save_scene(world: &mut World) {
-    let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
+    let project_dir = world.resource::<ProjectDir>().clone();
 
     if world
         .resource::<SelectedScene>()
@@ -469,7 +487,7 @@ fn save_scene_to(world: &mut World, path: &PathBuf) {
 }
 
 fn save_scene_as(world: &mut World) {
-    let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
+    let project_dir = world.resource::<ProjectDir>().clone();
 
     let path = FileDialog::new()
         .add_filter("Bevy Scene", &["scn"])
