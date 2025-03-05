@@ -10,13 +10,13 @@ path = ".bevy/lib.rs"
 [workspace]
 resolver = "2"
 
-# Enable a small amount of optimization in debug mode
+# Enable a small amount of optimization in the dev profile.
 [profile.dev]
 opt-level = 1
 
-# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
+# Enable a large amount of optimization in the dev profile for dependencies.
 [profile.dev.package."*"]
-opt-level = 3
+opt-level = 2
 
 # Enable more optimization in the release profile at the cost of compile time.
 [profile.release]
@@ -36,3 +36,6 @@ inherits = "release"
 opt-level = "s"
 # Strip all debugging information from the binary to slightly reduce file size.
 strip = "debuginfo"
+
+[dependencies]
+windows-targets = "0.52.6"

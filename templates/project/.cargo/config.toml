@@ -1,11 +1,14 @@
-[target.x86_64-pc-windows-msvc]
-# LLD linker
-#
-# You may need to install it:
-#
-# ```
-# cargo install -f cargo-binutils
-# rustup component add llvm-tools
-# ```
-linker = "rust-lld.exe"
-rustdocflags = ["-Clinker=rust-lld.exe"]
+[build]
+rustflags = [
+  "-Zthreads=0",
+  "-C",
+  "prefer-dynamic",
+  "-L",
+  "all=C:/Development/bevy_editor/target/debug/deps",
+  "--extern",
+  "bevy_ecs=C:/Development/bevy_editor/target/debug/bevy_ecs.dll",
+  "--extern",
+  "bevy_reflect=C:/Development/bevy_editor/target/debug/bevy_reflect.dll",
+  "--extern",
+  "bevy_log=C:/Development/bevy_editor/target/debug/bevy_log.dll",
+]

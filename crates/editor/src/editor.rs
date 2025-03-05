@@ -143,6 +143,22 @@ impl EditorState {
     pub fn compile(&mut self, world: &mut World) {
         unload_scene(world);
 
+        if let Some(lib) = &mut self.lib {
+            unsafe {
+                match lib.get::<Symbol<unsafe extern "C" fn(&mut TypeRegistry)>>(b"remove_types")
+                {
+                    Ok(func) => {
+                        let type_registry = world.resource_mut::<AppTypeRegistry>();
+                        let mut type_registry = type_registry.write();
+                        func(&mut type_registry);
+                    }
+                    Err(err) => {
+                        bevy::log::error!("Failed to get symbol: {err}");
+                    }
+                }
+            }
+        }
+
         self.lib = None;
 
         let project_dir = world.resource::<SelectedProject>().dir.clone().unwrap();
@@ -259,7 +275,7 @@ fn show_ui(world: &mut World) {
                                     state.lib = Some(lib);
                                 }
                                 Err(err) => {
-                                    bevy::log::error!("Failed to load library: {:?}", err);
+                                    bevy::log::error!("Failed to load library: {err}");
                                 }
                             }
 
@@ -272,7 +288,7 @@ fn show_ui(world: &mut World) {
                                         func(&mut type_registry);
                                     }
                                     Err(err) => {
-                                        bevy::log::error!("Failed to get symbol: {:?}", err);
+                                        bevy::log::error!("Failed to get symbol: {err}");
                                     }
                                 }
                             }
@@ -330,9 +346,12 @@ fn load_scene_from(world: &mut World, path: &PathBuf) {
         scene_deserializer.deserialize(&mut deserializer)
     };
 
-    let Ok(dynamic_scene) = dynamic_scene else {
-        bevy::log::error!("Failed to deserialize scene");
-        return;
+    let dynamic_scene = match dynamic_scene {
+        Ok(dynamic_scene) => dynamic_scene,
+        Err(err) => {
+            bevy::log::error!("Failed to deserialize scene: {err}");
+            return;
+        }
     };
 
     let mut entity_map = EntityHashMap::default();
