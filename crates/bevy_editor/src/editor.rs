@@ -4,21 +4,22 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Child, Command};
 
+use bevy::ecs::component::ComponentId;
 use egui_dock::DockArea;
 use libloading::{library_filename, Library, Symbol};
 use rfd::FileDialog;
 use serde::de::DeserializeSeed;
 use serde::{Deserialize, Serialize};
 
-use bevy::app::{App, Plugin, PluginGroup, PreUpdate, Startup};
+use bevy::app::{App, AppLabel, Plugin, PluginGroup, PreUpdate, Startup, SubApp};
 use bevy::asset::{AssetMode, AssetPlugin, UntypedAssetId};
 use bevy::ecs::entity::{Entity, EntityHashMap};
-use bevy::ecs::event::EventReader;
+use bevy::ecs::event::{EventReader, EventRegistry};
 use bevy::ecs::query::{With, Without};
 use bevy::ecs::reflect::AppTypeRegistry;
 use bevy::ecs::schedule::{IntoSystemConfigs, IntoSystemSetConfigs};
 use bevy::ecs::system::{Commands, Query, ResMut, Resource};
-use bevy::ecs::world::World;
+use bevy::ecs::world::{Mut, World};
 use bevy::pbr::{MeshMaterial3d, StandardMaterial};
 use bevy::picking::events::Pointer;
 use bevy::picking::mesh_picking::MeshPickingPlugin;
@@ -104,9 +105,7 @@ const DEFAULT_PROJECT_DEPENDENCIES: &'static [&'static str] = &[
     "bevy_winit",
 ];
 
-pub const EDITOR_PROJECT_DEPENDENCIES: &'static [&'static str] = &[
-    "bevy_bootstrap"
-];
+pub const EDITOR_PROJECT_DEPENDENCIES: &'static [&'static str] = &["bevy_bootstrap"];
 
 #[derive(Eq, PartialEq)]
 pub enum InspectorSelection {
@@ -183,6 +182,8 @@ pub struct EditorState {
     pub docking: EditorDockState,
     pub panels: HashMap<String, Box<dyn Panel>>,
     pub lib: Option<Library>,
+    registration_type_ids: Vec<TypeId>,
+    registration_component_ids: Vec<ComponentId>,
     pub compilation_process: Option<Child>,
     compilation_animation_time: f32,
 }
@@ -198,6 +199,8 @@ impl EditorState {
             docking: EditorDockState::standard(),
             panels: default(),
             lib: default(),
+            registration_type_ids: default(),
+            registration_component_ids: default(),
             compilation_process: default(),
             compilation_animation_time: default(),
         }
@@ -234,22 +237,33 @@ impl EditorState {
     pub fn compile(&mut self, world: &mut World) {
         unload_scene(world);
 
-        if let Some(lib) = &mut self.lib {
-            unsafe {
-                match lib.get::<Symbol<unsafe extern "C" fn(&mut TypeRegistry)>>(b"remove_types") {
-                    Ok(func) => {
-                        let type_registry = world.resource_mut::<AppTypeRegistry>();
-                        let mut type_registry = type_registry.write();
-                        func(&mut type_registry);
-                    }
-                    Err(err) => {
-                        bevy::log::error!("Failed to get symbol: {err}");
-                    }
-                }
+        {
+            let type_registry = world.resource_mut::<AppTypeRegistry>();
+            let mut type_registry = type_registry.write();
+
+            for type_id in &self.registration_type_ids {
+                type_registry.remove(*type_id);
             }
+
+            self.registration_type_ids.clear();
         }
 
-        self.lib = None;
+        {
+            for component_id in &self.registration_component_ids {
+                world.unregister_component(*component_id);
+            }
+
+            self.registration_component_ids.clear();
+        }
+
+        if let Some(lib) = self.lib.take() {
+            match lib.close() {
+                Err(err) => {
+                    bevy::log::error!("Failed to unload library: {err}");
+                }
+                _ => {}
+            }
+        }
 
         let project_dir = world.resource::<ProjectDir>().clone();
 
@@ -348,78 +362,106 @@ fn show_ui(world: &mut World) {
         editor_state.ui(world, egui_context.get_mut())
     });
 
+    compilation(egui_context.get_mut(), world);
+}
+
+fn compilation(egui_ctx: &mut egui::Context, world: &mut World) {
     let type_registry = world.resource::<AppTypeRegistry>().clone();
     let project_dir = world.resource::<ProjectDir>().clone();
     let delta_seconds = world.resource::<Time>().delta_secs();
-    let mut state = world.resource_mut::<EditorState>();
-    if let Some(compilation_process) = state.compilation_process.as_mut() {
-        match compilation_process.try_wait() {
-            Ok(status) => {
-                if let Some(status) = status {
-                    setup_editing(DEFAULT_PROJECT_DEPENDENCIES, &project_dir);
+    world.resource_scope(|world, mut state: Mut<EditorState>| {
+        if let Some(compilation_process) = state.compilation_process.as_mut() {
+            match compilation_process.try_wait() {
+                Ok(status) => {
+                    if let Some(status) = status {
+                        setup_editing(DEFAULT_PROJECT_DEPENDENCIES, &project_dir);
 
-                    state.compilation_process = None;
-                    state.compilation_animation_time = 0.;
+                        state.compilation_process = None;
+                        state.compilation_animation_time = 0.;
+                        if status.success() {
+                            let mut lib_path = project_dir.clone();
+                            lib_path.push("target/debug/bevy_project");
 
-                    if status.success() {
-                        let mut lib_path = project_dir.clone();
-                        lib_path.push("target/debug/bevy_project");
-
-                        unsafe {
-                            match Library::new(library_filename(lib_path)) {
-                                Ok(lib) => {
-                                    state.lib = Some(lib);
-                                }
-                                Err(err) => {
-                                    bevy::log::error!("Failed to load library: {err}");
-                                }
-                            }
-
-                            if let Some(lib) = &mut state.lib {
-                                match lib.get::<Symbol<unsafe extern "C" fn(&mut TypeRegistry)>>(
-                                    b"register_types",
-                                ) {
-                                    Ok(func) => {
-                                        let mut type_registry = type_registry.write();
-                                        func(&mut type_registry);
+                            unsafe {
+                                match Library::new(library_filename(lib_path)) {
+                                    Ok(lib) => {
+                                        state.lib = Some(lib);
                                     }
                                     Err(err) => {
-                                        bevy::log::error!("Failed to get symbol: {err}");
+                                        bevy::log::error!("Failed to load library: {err}");
                                     }
                                 }
+
+                                let func = if let Some(lib) = &mut state.lib {
+                                    match lib.get::<Symbol<
+                                        unsafe extern "C" fn(
+                                            &mut World,
+                                            &mut TypeRegistry,
+                                            &mut Vec<TypeId>,
+                                            &mut Vec<ComponentId>,
+                                        ),
+                                    >>(
+                                        b"register_types"
+                                    ) {
+                                        Ok(func) => Some(func),
+                                        Err(err) => {
+                                            bevy::log::error!("Failed to get symbol: {err}");
+                                            None
+                                        }
+                                    }
+                                } else {
+                                    None
+                                };
+
+                                if let Some(func) = func {
+                                    let mut type_registry = type_registry.write();
+                                    let mut registration_type_ids = Vec::new();
+                                    let mut registration_component_ids = Vec::new();
+
+                                    func(
+                                        world,
+                                        &mut type_registry,
+                                        &mut registration_type_ids,
+                                        &mut registration_component_ids,
+                                    );
+
+                                    state.registration_type_ids = registration_type_ids;
+                                    state.registration_component_ids = registration_component_ids;
+                                }
                             }
+
+                            load_last_scene(world);
+                        }
+                    } else {
+                        state.compilation_animation_time += delta_seconds;
+
+                        let mut dots = (state.compilation_animation_time
+                            / COMPILATION_ANIMATION_DURATION)
+                            as u32;
+
+                        if dots > COMPILATION_ANIMATION_DOTS {
+                            state.compilation_animation_time = 0.;
+                            dots = 0;
                         }
 
-                        load_last_scene(world);
+                        let mut message = String::from("Compilation");
+                        for _ in 0..dots {
+                            message.push('.');
+                        }
+
+                        Modal::new("compilation_process".into()).show(egui_ctx, |ui| {
+                            ui.set_width(250.0);
+                            ui.heading(message);
+                        });
                     }
-                } else {
-                    state.compilation_animation_time += delta_seconds;
-
-                    let mut dots =
-                        (state.compilation_animation_time / COMPILATION_ANIMATION_DURATION) as u32;
-
-                    if dots > COMPILATION_ANIMATION_DOTS {
-                        state.compilation_animation_time = 0.;
-                        dots = 0;
-                    }
-
-                    let mut message = String::from("Compilation");
-                    for _ in 0..dots {
-                        message.push('.');
-                    }
-
-                    Modal::new("compilation_process".into()).show(egui_context.get_mut(), |ui| {
-                        ui.set_width(250.0);
-                        ui.heading(message);
-                    });
+                }
+                Err(_) => {
+                    state.compilation_process = None;
+                    state.compilation_animation_time = 0.;
                 }
             }
-            Err(_) => {
-                state.compilation_process = None;
-                state.compilation_animation_time = 0.;
-            }
         }
-    }
+    });
 }
 
 fn load_scene_from(world: &mut World, path: &PathBuf) {
